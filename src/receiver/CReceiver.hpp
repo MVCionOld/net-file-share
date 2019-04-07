@@ -1,0 +1,4 @@
+#ifndef SRC_CRECEIVER_H
+#define SRC_CRECEIVER_H
+
+#endif //SRC_CRECEIVER_H

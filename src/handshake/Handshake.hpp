@@ -6,7 +6,7 @@
 #include "glob_consts.h"
 
 
-struct CHandshake {
+struct Handshake {
   size_t threads_amt;
   uint64_t file_size;
   std::string file_nm;
@@ -15,6 +15,5 @@ struct CHandshake {
 struct CHandshakeBuff {
   char buffer[HandshakeVal::MAX_SIZE];
 };
-
 
 #endif //SRC_CFILEINFO_H

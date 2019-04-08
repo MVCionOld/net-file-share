@@ -1,5 +1,21 @@
-//
-// Created by umvcion on 07.04.19.
-//
+#include "CReceiver.hpp"
 
-#include "CReceiver.h"
+
+CReceiver::CReceiver () {
+  const uint16_t port = get_available_port();
+  sockfd_ = get_ready_sockrfd(port);
+}
+
+CReceiver::~CReceiver () {
+  close_sockrfd(sockfd_);
+}
+
+void CReceiver::Receive () const {
+
+}
+
+
+void CReceiver::makeHandshake () {
+
+}
+

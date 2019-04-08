@@ -4,21 +4,24 @@
 #include <stdio.h>
 
 enum FdTypeVal {
-  ERROR_FD = -1
+  ERROR_FD = -1,
+  OPEN_MODE = 0640
+};
+
+enum PortRange {
+  FROM,
+  TO
 };
 
 enum HandshakeVal {
-  MAX_SIZE = FILENAME_MAX + sizeof(uint64_t) + sizeof(size_t)
+  HANDSHAKE_SIZE = FILENAME_MAX + sizeof(uint64_t) + sizeof(size_t),
+  MAX_THREADS_AMT = 8
 };
 
 enum ProtVal {
-  ALIAS_PROT_NONE = -1,
-  ALIAS_PROT_READ = 0,
-  ALIAS_PROT_WRITE = 1
-};
-
-enum FileFlags {
-
+  ALIAS_PROT_NONE,
+  ALIAS_PROT_READ,
+  ALIAS_PROT_WRITE
 };
 
 #endif //SRC_GLOB_CONSTS_H

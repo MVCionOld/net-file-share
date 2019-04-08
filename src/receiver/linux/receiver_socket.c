@@ -7,7 +7,12 @@ enum {
 
 
 uint16_t
-get_available_port () {
+choose_available_port (uint16_t from, uint16_t to) {
+  /*
+   *
+   * TO-DO: find available port
+   *
+   */
   return 27650;
 }
 
@@ -76,9 +81,3 @@ void
 close_sockrfd (int fd) {
   close(fd);
 }
-
-ssize_t
-recv_package (int clientfd, char *data, size_t size) {
-  return read(clientfd, data, size);
-}
-

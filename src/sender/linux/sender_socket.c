@@ -1,6 +1,16 @@
 #include "sender_socket.h"
 
 
+uint16_t
+choose_port (const char *ip, uint16_t from, uint16_t to) {
+  /*
+   *
+   * TO-DO: find available receiver's port
+   *
+   */
+  return 27650;
+}
+
 int
 get_ready_socksfd (const char *ip, uint16_t port) {
 #ifdef DEBUG
@@ -42,11 +52,6 @@ get_ready_socksfd (const char *ip, uint16_t port) {
   }
   freeaddrinfo(addrs);
   return sockfd;
-}
-
-ssize_t
-send_package (int sockfd, char *data, size_t size) {
-  return write(sockfd, data, size);
 }
 
 void

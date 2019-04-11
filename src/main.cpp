@@ -5,14 +5,14 @@
 #include "sender/CSender.hpp"
 
 
-int main (int argc, char **argv) {
+int main (int argc, const char **argv) {
   ArgumentParser parser;
   parser.addArgument("-r", "--receive");
   parser.addArgument("-s", "--send");
   parser.addArgument("-i", "--ip");
   parser.addArgument("-f", "--file");
   parser.addArgument("-t", "--threads");
-  parser.parse(static_cast<size_t>(argc), (const char **) argv);
+  parser.parse(static_cast<size_t>(argc), argv);
   if (parser.exists("--receive")) {
     for (const auto &param: {"-s", "-i", "-f", "-t"}) {
       if (parser.exists(param)) {

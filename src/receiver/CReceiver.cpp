@@ -27,32 +27,37 @@ void CReceiver::Receive () {
       clifds.emplace_back(accept_clientfd(sockfds[thread_id]));
     }
     const auto receiver_size = file_size / threads_amt_;
-    receivers.emplace_back([&] () {
-      auto pkg_amt = static_cast<size_t>(receiver_size / PACKAGE_SIZE);
-      byte package[PACKAGE_SIZE];
-      for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
-        auto package_size = static_cast<size_t>(PACKAGE_SIZE);
-        if (pkg_id == pkg_amt - 1) {
-          if (thread_id == threads_amt_ - 1) {
-            package_size = file_size - receiver_size * thread_id
-                           - PACKAGE_SIZE * pkg_id;
-          } else {
-            package_size = receiver_size - PACKAGE_SIZE * pkg_id;
+    receivers.emplace_back(
+        [receiver_size, dest_map, file_size, &clifds]
+            (size_t thread_id, size_t threads_amt) {
+          auto pkg_amt = static_cast<size_t>(receiver_size / PACKAGE_SIZE);
+          byte package[PACKAGE_SIZE];
+          for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
+            auto package_size = static_cast<size_t>(PACKAGE_SIZE);
+            if (pkg_id == pkg_amt - 1) {
+              if (thread_id == threads_amt - 1) {
+                package_size = file_size - receiver_size * thread_id
+                               - PACKAGE_SIZE * pkg_id;
+              } else {
+                package_size = receiver_size - PACKAGE_SIZE * pkg_id;
+              }
+            }
+            read_package(
+                clifds[thread_id],
+                package,
+                package_size
+            );
+            write_mmap(
+                dest_map,
+                package,
+                package_size,
+                thread_id * receiver_size + pkg_id * PACKAGE_SIZE
+            );
           }
-        }
-        read_package(
-            clifds[thread_id],
-            package,
-            package_size
-        );
-        write_mmap(
-            dest_map,
-            package,
-            package_size,
-            thread_id * receiver_size + pkg_id * PACKAGE_SIZE
-        );
-      }
-    });
+        },
+        thread_id,
+        threads_amt_
+    );
   }
   for (auto &receiver: receivers) {
     receiver.join();

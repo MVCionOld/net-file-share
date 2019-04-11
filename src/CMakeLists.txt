@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(src)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 add_executable(
         src
@@ -27,3 +27,7 @@ add_executable(
         file_lib/win/FileLib.c
         file_lib/win/FileLib.h
 )
+
+target_link_libraries(src ${CMAKE_DL_LIBS})
+target_link_libraries(src pthread)
+target_link_libraries(src rt)

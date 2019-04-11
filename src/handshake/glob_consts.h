@@ -1,8 +1,8 @@
 #ifndef SRC_GLOB_CONSTS_H
 #define SRC_GLOB_CONSTS_H
 
-#include <cstdio>
-#include <cinttypes>
+#include <stdio.h>
+#include <inttypes.h>
 
 
 typedef char byte;

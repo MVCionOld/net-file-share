@@ -13,7 +13,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   threads_amt_ = threads_amt;
   const int source_fd = open_file(file_path_.c_str());
   auto file_size = get_file_size(source_fd);
-  mmap_t source_map = map_file_r(source_fd, file_size);
+  auto source_map = map_file_r(source_fd, file_size);
   close_file(source_fd);
   const uint16_t port = choose_port(
       ip_.c_str(),
@@ -68,33 +68,32 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
 }
 
 void CSender::makeHandshake (int fd, std::vector<uint16_t> &ports) {
-  const size_t threads_amt_off = sizeof(size_t);
-  const size_t file_size_off = sizeof(size_t) + sizeof(uint64_t);
+  const size_t file_size_off = sizeof(size_t);
+  const size_t file_nm_off = sizeof(size_t) + sizeof(uint64_t);
   /*
-  struct Handshake {
-    size_t threads_amt;
-    uint64_t file_size;
-    std::string file_nm;
-  };
+    Handshake
+    {
+      size_t   threads_amt
+      uint64_t file_size
+      string   file_nm
+    };
  */
   SendHandshakeBuff send_buff;
-  std::copy(
-      reinterpret_cast<void *>(&threads_amt_),
-      reinterpret_cast<void *>(&threads_amt_ + threads_amt_off),
-      reinterpret_cast<void *>(&send_buff.buffer)
+  parse(
+      send_buff.buffer,
+      reinterpret_cast<byte *>(&threads_amt_),
+      sizeof(threads_amt_)
   );
   auto file_size = static_cast<uint64_t>(get_file_size(fd));
-  std::copy(
-      reinterpret_cast<void *>(&file_size),
-      reinterpret_cast<void *>(&file_size + sizeof(uint64_t)),
-      reinterpret_cast<void *>(&send_buff.buffer + threads_amt_off)
+  parse(
+      send_buff.buffer + file_size_off,
+      reinterpret_cast<byte *>(&file_size),
+      sizeof(file_size)
   );
-  char filename[FILENAME_MAX];
-  get_file_name(file_path_.c_str(), filename, FILENAME_MAX);
-  std::copy(
-      reinterpret_cast<void *>(filename),
-      reinterpret_cast<void *>(filename + FILENAME_MAX),
-      reinterpret_cast<void *>(&send_buff + file_size_off)
+  get_file_name(
+      file_path_.c_str(),
+      send_buff.buffer + file_nm_off,
+      FILENAME_MAX
   );
   write_package(
       sockfd_,

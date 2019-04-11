@@ -1,7 +1,9 @@
 #ifndef SRC_MEMORY_MAPPING_H
 #define SRC_MEMORY_MAPPING_H
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #define _FILE_OFFSET_BITS 64
 
 #include <string.h>

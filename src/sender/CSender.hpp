@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "../handshake/Handshake.hpp"
 
+#include "../handshake/handshake.hpp"
 extern "C" {
 #include "../handshake/glob_consts.h"
 #if defined(_WIN32) || defined(_WIN64)

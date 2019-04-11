@@ -1,4 +1,3 @@
-
 #include "CReceiver.hpp"
 
 
@@ -18,7 +17,7 @@ void CReceiver::Receive () {
   uint64_t file_size;
   makeHandshake(clifd, ports, file_nm, file_size);
   int dest_fd = prepareFile(file_nm, file_size);
-  mmap_t dest_map = map_file_w(dest_fd, file_size);
+  auto dest_map = map_file_w(dest_fd, file_size);
   close_file(dest_fd);
   std::vector<int> sockfds = {sockfd_}, clifds = {clifd};
   std::vector<std::thread> receivers;
@@ -73,7 +72,7 @@ void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
   SendHandshakeBuff buff;
   read_package(
       clifd,
-      reinterpret_cast<void *>(&buff),
+      reinterpret_cast<void *>(buff.buffer),
       HandshakeVal::HANDSHAKE_SIZE
   );
   /*
@@ -83,23 +82,22 @@ void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
       std::string file_nm;
     };
    */
-  const size_t threads_amt_off = sizeof(size_t);
-  const size_t file_size_off = sizeof(size_t) + sizeof(uint64_t);
-  std::copy(
-      reinterpret_cast<void *>(&buff),
-      reinterpret_cast<void *>(&buff + threads_amt_off),
-      reinterpret_cast<void *>(&threads_amt_)
+  const size_t file_size_off = sizeof(size_t);
+  const size_t file_nm_off = sizeof(size_t) + sizeof(uint64_t);
+  parse(
+      reinterpret_cast<byte *>(&threads_amt_),
+      buff.buffer,
+      sizeof(threads_amt_)
   );
-  std::copy(
-      reinterpret_cast<void *>(&buff + threads_amt_off),
-      reinterpret_cast<void *>(&buff + file_size_off),
-      reinterpret_cast<void *>(&file_size)
+  parse(
+      reinterpret_cast<byte *>(&file_size),
+      buff.buffer + file_size_off,
+      sizeof(file_size)
   );
-  file_nm = std::move(std::string(buff.buffer + file_size_off));
-  RecvHandshakeBuff recv_buff = {
-      .threads_amt = threads_amt_,
-      .ports[0] = static_cast<size_t >(sockfd_)
-  };
+  file_nm = std::move(std::string(buff.buffer + file_nm_off));
+  RecvHandshakeBuff recv_buff{};
+  recv_buff.threads_amt = threads_amt_;
+  recv_buff.ports[0] = static_cast<size_t >(sockfd_);
   ports.emplace_back(recv_buff.ports[0]);
   for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
     recv_buff.ports[port_idx] = static_cast<size_t>(

@@ -1,10 +1,11 @@
 #ifndef SRC_GLOB_CONSTS_H
 #define SRC_GLOB_CONSTS_H
 
-#include <stdio.h>
+#include <cstdio>
+#include <cinttypes>
 
-using mmap_t = void *;
-using byte = char;
+
+typedef char byte;
 
 enum FdTypeVal {
   ERROR_FD = -1,

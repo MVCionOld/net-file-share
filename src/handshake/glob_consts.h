@@ -3,9 +3,12 @@
 
 #include <stdio.h>
 
+using mmap_t = void *;
+using byte = char;
+
 enum FdTypeVal {
   ERROR_FD = -1,
-  OPEN_MODE = 0640
+  OPEN_MODE = 0660
 };
 
 enum PortRange {
@@ -14,14 +17,12 @@ enum PortRange {
 };
 
 enum HandshakeVal {
-  HANDSHAKE_SIZE = FILENAME_MAX + sizeof(uint64_t) + sizeof(size_t),
-  MAX_THREADS_AMT = 8
+  HANDSHAKE_SIZE = FILENAME_MAX + sizeof(uint64_t) + sizeof(size_t)
 };
 
-enum ProtVal {
-  ALIAS_PROT_NONE,
-  ALIAS_PROT_READ,
-  ALIAS_PROT_WRITE
+enum SendRecvParams {
+  MAX_THREADS_AMT = 8,
+  PACKAGE_SIZE = 1024
 };
 
 #endif //SRC_GLOB_CONSTS_H

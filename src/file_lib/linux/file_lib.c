@@ -3,13 +3,14 @@
 
 int
 create_file (const char *path) {
-  const int flags = O_CREAT | O_WRONLY | O_LARGEFILE | O_NONBLOCK;
+  const int flags = O_CREAT | O_RDWR | O_TRUNC |
+                    O_LARGEFILE;
   return open(path, flags, OPEN_MODE);
 }
 
 int
 open_file (const char *path) {
-  const int flags = O_RDONLY | O_LARGEFILE | O_NONBLOCK;
+  const int flags = O_RDONLY | O_LARGEFILE;
   return open(path, flags, OPEN_MODE);
 }
 
@@ -29,6 +30,16 @@ write_package (int fd, const void *buf, size_t count) {
 }
 
 void
+read_mmap (void *dst, void *src, size_t length, off64_t offset) {
+  memcpy(dst, src + offset, length);
+}
+
+void
+write_mmap (void *dst, void *src, size_t length, off64_t offset) {
+  memcpy(dst + offset, src, length);
+}
+
+void
 get_file_name (const char *path, char *filename, size_t length) {
   memset(filename, '\0', length);
   memcpy(filename, basename((char *) path), length);
@@ -44,23 +55,21 @@ get_file_size (int fd) {
 }
 
 int
-file_truncate (int fd, off_t length) {
+file_truncate (int fd, off64_t length) {
   return ftruncate(fd, length);
 }
 
 void *
-map_file (int fd, size_t length, int prot, off_t offset) {
-  if (prot == ALIAS_PROT_READ) {
-    prot = PROT_READ;
-  } else if (prot == ALIAS_PROT_WRITE) {
-    prot = PROT_WRITE;
-  } else {
-    prot = PROT_NONE;
-  }
-  return mmap(NULL, length, prot, MAP_SHARED, fd, offset);
+map_file_r (int fd, off64_t length) {
+  return mmap(NULL, length, PROT_READ, MAP_SHARED, fd, 0);
+}
+
+void *
+map_file_w (int fd, off64_t length) {
+  return mmap(NULL, length, PROT_WRITE, MAP_SHARED, fd, 0);
 }
 
 int
-unmap_file (void *addr, size_t length) {
+unmap_file (void *addr, off64_t length) {
   return munmap(addr, length);
 }

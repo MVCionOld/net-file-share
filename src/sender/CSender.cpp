@@ -11,7 +11,10 @@ CSender::~CSender () {
 void CSender::Send (std::string file_path, size_t threads_amt) {
   file_path_ = std::move(file_path);
   threads_amt_ = threads_amt;
-  const int fd = open_file(file_path_.c_str());
+  const int source_fd = open_file(file_path_.c_str());
+  auto file_size = get_file_size(source_fd);
+  mmap_t source_map = map_file_r(source_fd, file_size);
+  close_file(source_fd);
   const uint16_t port = choose_port(
       ip_.c_str(),
       PortRange::FROM,
@@ -19,7 +22,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   );
   std::vector<uint16_t> ports = {port};
   sockfd_ = get_ready_socksfd(ip_.c_str(), port);
-  makeHandshake(fd, ports);
+  makeHandshake(sockfd_, ports);
   std::vector<int> sockfds = {sockfd_};
   std::vector<std::thread> senders;
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
@@ -27,12 +30,33 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
       const int socksfd = get_ready_socksfd(ip_.c_str(), ports[thread_id]);
       sockfds.emplace_back(socksfd);
     }
-    senders.emplace_back(
-        [thread_id] () {
-
-          // TO_DO: add sender work
-
-        });
+    const auto sender_size = file_size / threads_amt_;
+    senders.emplace_back([&] () {
+      auto pkg_amt = static_cast<size_t>(sender_size / PACKAGE_SIZE);
+      byte package[PACKAGE_SIZE];
+      for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
+        auto package_size = static_cast<size_t>(PACKAGE_SIZE);
+        if (pkg_id == pkg_amt - 1) {
+          if (thread_id == threads_amt_ - 1) {
+            package_size = file_size - sender_size * thread_id
+                           - PACKAGE_SIZE * pkg_id;
+          } else {
+            package_size = sender_size - PACKAGE_SIZE * pkg_id;
+          }
+        }
+        read_mmap(
+            package,
+            source_map,
+            package_size,
+            thread_id * sender_size + pkg_id * PACKAGE_SIZE
+        );
+        write_package(
+            sockfds[thread_id],
+            package,
+            package_size
+        );
+      }
+    });
   }
   for (auto &sender: senders) {
     sender.join();
@@ -40,7 +64,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   for (auto socksfd: sockfds) {
     close_socksfd(socksfd);
   }
-  close_file(fd);
+  unmap_file(source_map, file_size);
 }
 
 void CSender::makeHandshake (int fd, std::vector<uint16_t> &ports) {

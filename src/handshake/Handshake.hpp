@@ -19,7 +19,7 @@ struct SendHandshakeBuff {
 
 struct RecvHandshakeBuff {
   size_t threads_amt = 0;
-  size_t ports[HandshakeVal::MAX_THREADS_AMT] = {0};
+  size_t ports[SendRecvParams::MAX_THREADS_AMT] = {0};
 };
 
 #endif //SRC_CFILEINFO_H

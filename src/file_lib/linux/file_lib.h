@@ -34,18 +34,27 @@ extern ssize_t
 write_package (int fd, const void *buf, size_t count);
 
 extern void
+read_mmap (void *dst, void *src, size_t length, off64_t offset);
+
+extern void
+write_mmap (void *dst, void *src, size_t length, off64_t offset);
+
+extern void
 get_file_name (const char *path, char *filename, size_t length);
 
 extern off64_t
 get_file_size (int fd);
 
 extern int
-file_truncate (int fd, off_t length);
+file_truncate (int fd, off64_t length);
 
 extern void *
-map_file (int fd, size_t length, int prot, off_t offset);
+map_file_r (int fd, off64_t length);
+
+extern void *
+map_file_w (int fd, off64_t length);
 
 extern int
-unmap_file (void *addr, size_t length);
+unmap_file (void *addr, off64_t length);
 
 #endif //SRC_MEMORY_MAPPING_H

@@ -18,11 +18,7 @@ choose_available_port (uint16_t from, uint16_t to) {
 
 int
 get_ready_sockrfd (uint16_t port) {
-#ifdef DEBUG
-  const int domain = PF_INET;
-#else
   const int domain = AF_INET;
-#endif
   const int sockfd = socket(domain, SOCK_STREAM, 0);
   if (sockfd < 0) {
     perror("socket");

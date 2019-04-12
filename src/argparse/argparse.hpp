@@ -1,476 +1,323 @@
-#ifndef LINUX_ARGPARSE_H
-#define LINUX_ARGPARSE_H
+#ifndef ARGPARSER_HPP_
+#define ARGPARSER_HPP_
 
-#if __cplusplus >= 201103L
-
-#include <unordered_map>
-
-typedef std::unordered_map<std::string, size_t> IndexMap;
-#else
-#include <map>
-typedef std::map<std::string, size_t> IndexMap;
-#endif
-
-#include <string>
 #include <vector>
-#include <typeinfo>
-#include <stdexcept>
-#include <sstream>
-#include <iostream>
-#include <cassert>
+#include <string>
 #include <algorithm>
+#include <map>
 
-/*! @class ArgumentParser
- *  @brief A simple command-line argument parser based on the design of
- *  python's parser of the same name.
- *
- *  ArgumentParser is a simple C++ class that can parse arguments from
- *  the command-line or any array of strings. The syntax is familiar to
- *  anyone who has used python's ArgumentParser:
- *  \code
- *    // create a parser and add the options
- *    ArgumentParser parser;
- *    parser.addArgument("-n", "--name");
- *    parser.addArgument("--inputs", '+');
- *
- *    // parse the command-line arguments
- *    parser.parse(argc, argv);
- *
- *    // get the inputs and iterate over them
- *    string name = parser.retrieve("name");
- *    vector<string> inputs = parser.retrieve<vector<string>>("inputs");
- *  \endcode
- *
- */
-class ArgumentParser {
-private:
-  class Any;
+#include <cstdio>
+#include <cstdlib>
 
-  class Argument;
+namespace ap {
+  // Behavior for individual args passed to add()
+  enum class mode {
+    REQUIRED,
+    OPTIONAL,
+    BOOLEAN,
+  };
 
-  class PlaceHolder;
+  // Object returned from parse()
+  class argmap {
+  private:
+    std::map<std::string, std::string> args;
+    bool success;
 
-  class Holder;
-
-  typedef std::string String;
-  typedef std::vector<Any> AnyVector;
-  typedef std::vector<String> StringVector;
-  typedef std::vector<Argument> ArgumentVector;
-
-  // --------------------------------------------------------------------------
-  // Type-erasure internal storage
-  // --------------------------------------------------------------------------
-  class Any {
   public:
-    // constructor
-    Any () : content(0) {}
+    argmap (const std::map<std::string, std::string> &args, bool success)
+        : args(args), success(success) {}
 
-    // destructor
-    ~Any () { delete content; }
-
-    // INWARD CONVERSIONS
-    Any (const Any &other) : content(other.content ? other.content->clone() : 0) {}
-
-    template<typename ValueType>
-    Any (const ValueType &other)
-        : content(new Holder<ValueType>(other)) {}
-
-    Any &swap (Any &other) {
-      std::swap(content, other.content);
-      return *this;
+    const std::string &operator[] (const std::string &argstr) {
+      return args[argstr];
     }
 
-    Any &operator= (const Any &rhs) {
-      Any tmp(rhs);
-      return swap(tmp);
+    bool parsed_successfully () const noexcept {
+      return success;
     }
+  };
 
-    template<typename ValueType>
-    Any &operator= (const ValueType &rhs) {
-      Any tmp(rhs);
-      return swap(tmp);
-    }
+  class parser {
+  private:
+    struct argstruct {
+      std::string shortarg;
+      std::string longarg;
+      std::string helpstr;
+      bool booltype;
+      bool required;
+      bool parsed;
 
-    // OUTWARD CONVERSIONS
-    template<typename ValueType>
-    ValueType *toPtr () const {
-      return content->type_info() == typeid(ValueType)
-             ? &static_cast<Holder<ValueType> *>(content)->held_
-             : 0;
-    }
+      argstruct (const std::string &sa,
+                 const std::string &la,
+                 const std::string &hs,
+                 bool bt,
+                 bool rq,
+                 bool ps)
+          : shortarg(sa), longarg(la), helpstr(hs), booltype(bt), required(rq), parsed(ps) {}
+    };
 
-    template<typename ValueType>
-    ValueType &castTo () {
-      if (!toPtr<ValueType>()) throw std::bad_cast();
-      return *toPtr<ValueType>();
-    }
+    int m_argc;
+    std::vector<std::string> m_argv;
+    std::vector<argstruct> m_args;
 
-    template<typename ValueType>
-    const ValueType &castTo () const {
-      if (!toPtr<ValueType>()) throw std::bad_cast();
-      return *toPtr<ValueType>();
-    }
+    bool m_any_adds_failed = false;
 
   private:
-    // Inner placeholder interface
-    class PlaceHolder {
-    public:
-      virtual ~PlaceHolder () {}
+    void remove_equals (std::vector<std::string> &argv) const {
+      int new_argc = std::count_if(argv.begin(), argv.end(), [] (const std::string &s) {
+        return s.find("=") != std::string::npos;
+      }) + argv.size();
 
-      virtual const std::type_info &type_info () const = 0;
+      argv.reserve(new_argc);
 
-      virtual PlaceHolder *clone () const = 0;
-    };
+      auto it = argv.begin();
+      while (it != argv.end()) {
+        auto idx = it->find("=");
+        if (idx != std::string::npos) {
+          auto arg = it->substr(0, idx);
+          auto val = it->substr(idx + 1);
 
-    // Inner template concrete instantiation of PlaceHolder
-    template<typename ValueType>
-    class Holder : public PlaceHolder {
-    public:
-      ValueType held_;
-
-      Holder (const ValueType &value) : held_(value) {}
-
-      virtual const std::type_info &type_info () const { return typeid(ValueType); }
-
-      virtual PlaceHolder *clone () const { return new Holder(held_); }
-    };
-
-    PlaceHolder *content;
-  };
-
-  // --------------------------------------------------------------------------
-  // Argument
-  // --------------------------------------------------------------------------
-  static String delimit (const String &name) {
-    return String(std::min(name.size(), (size_t) 2), '-').append(name);
-  }
-
-  static String strip (const String &name) {
-    size_t begin = 0;
-    begin += name.size() > 0 ? name[0] == '-' : 0;
-    begin += name.size() > 3 ? name[1] == '-' : 0;
-    return name.substr(begin);
-  }
-
-  static String upper (const String &in) {
-    String out(in);
-    std::transform(out.begin(), out.end(), out.begin(), ::toupper);
-    return out;
-  }
-
-  static String escape (const String &in) {
-    String out(in);
-    if (in.find(' ') != std::string::npos) out = String("\"").append(out).append("\"");
-    return out;
-  }
-
-  struct Argument {
-    Argument () : short_name(""), name(""), optional(true), fixed_nargs(0), fixed(true) {}
-
-    Argument (const String &_short_name, const String &_name, bool _optional, char nargs)
-        : short_name(_short_name), name(_name), optional(_optional) {
-      if (nargs == '+' || nargs == '*') {
-        variable_nargs = nargs;
-        fixed = false;
-      } else {
-        fixed_nargs = nargs;
-        fixed = true;
-      }
-    }
-
-    String short_name;
-    String name;
-    bool optional;
-    union {
-      size_t fixed_nargs;
-      char variable_nargs;
-    };
-    bool fixed;
-
-    String canonicalName () const { return (name.empty()) ? short_name : name; }
-
-    String toString (bool named = true) const {
-      std::ostringstream s;
-      String uname = name.empty() ? upper(strip(short_name)) : upper(strip(name));
-      if (named && optional) s << "[";
-      if (named) s << canonicalName();
-      if (fixed) {
-        size_t N = std::min((size_t) 3, fixed_nargs);
-        for (size_t n = 0; n < N; ++n) s << " " << uname;
-        if (N < fixed_nargs) s << " ...";
-      }
-      if (!fixed) {
-        s << " ";
-        if (variable_nargs == '*') s << "[";
-        s << uname << " ";
-        if (variable_nargs == '+') s << "[";
-        s << uname << "...]";
-      }
-      if (named && optional) s << "]";
-      return s.str();
-    }
-  };
-
-  void insertArgument (const Argument &arg) {
-    size_t N = arguments_.size();
-    arguments_.push_back(arg);
-    if (arg.fixed && arg.fixed_nargs <= 1) {
-      variables_.push_back(String());
-    } else {
-      variables_.push_back(StringVector());
-    }
-    if (!arg.short_name.empty()) index_[arg.short_name] = N;
-    if (!arg.name.empty()) index_[arg.name] = N;
-    if (!arg.optional) required_++;
-  }
-
-  // --------------------------------------------------------------------------
-  // Error handling
-  // --------------------------------------------------------------------------
-  void argumentError (const std::string &msg, bool show_usage = false) {
-    if (use_exceptions_) throw std::invalid_argument(msg);
-    std::cerr << "ArgumentParser error: " << msg << std::endl;
-    if (show_usage) std::cerr << usage() << std::endl;
-    exit(-5);
-  }
-
-  // --------------------------------------------------------------------------
-  // Member variables
-  // --------------------------------------------------------------------------
-  IndexMap index_;
-  bool ignore_first_;
-  bool use_exceptions_;
-  size_t required_;
-  String app_name_;
-  String final_name_;
-  ArgumentVector arguments_;
-  AnyVector variables_;
-
-public:
-  ArgumentParser () : ignore_first_(true), use_exceptions_(false), required_(0) {}
-
-  // --------------------------------------------------------------------------
-  // addArgument
-  // --------------------------------------------------------------------------
-  void appName (const String &name) { app_name_ = name; }
-
-  void addArgument (const String &name, char nargs = 0, bool optional = true) {
-    if (name.size() > 2) {
-      Argument arg("", verify(name), optional, nargs);
-      insertArgument(arg);
-    } else {
-      Argument arg(verify(name), "", optional, nargs);
-      insertArgument(arg);
-    }
-  }
-
-  void addArgument (const String &short_name, const String &name, char nargs = 0,
-                    bool optional = true) {
-    Argument arg(verify(short_name), verify(name), optional, nargs);
-    insertArgument(arg);
-  }
-
-  void addFinalArgument (const String &name, char nargs = 1, bool optional = false) {
-    final_name_ = delimit(name);
-    Argument arg("", final_name_, optional, nargs);
-    insertArgument(arg);
-  }
-
-  void ignoreFirstArgument (bool ignore_first) { ignore_first_ = ignore_first; }
-
-  String verify (const String &name) {
-    if (name.empty()) argumentError("argument names must be non-empty");
-    if ((name.size() == 2 && name[0] != '-') || name.size() == 3)
-      argumentError(String("invalid argument '")
-                        .append(name)
-                        .append("'. Short names must begin with '-'"));
-    if (name.size() > 3 && (name[0] != '-' || name[1] != '-'))
-      argumentError(String("invalid argument '")
-                        .append(name)
-                        .append("'. Multi-character names must begin with '--'"));
-    return name;
-  }
-
-  // --------------------------------------------------------------------------
-  // Parse
-  // --------------------------------------------------------------------------
-  void parse (size_t argc, const char **argv) { parse(StringVector(argv, argv + argc)); }
-
-  void parse (const StringVector &argv) {
-    // check if the app is named
-    if (app_name_.empty() && ignore_first_ && !argv.empty()) app_name_ = argv[0];
-
-    // set up the working set
-    Argument active;
-    Argument final = final_name_.empty() ? Argument() : arguments_[index_[final_name_]];
-    size_t consumed = 0;
-    size_t nrequired = final.optional ? required_ : required_ - 1;
-    size_t nfinal = final.optional ? 0 : (final.fixed ? final.fixed_nargs
-                                                      : (final.variable_nargs == '+' ? 1 : 0));
-
-    // iterate over each element of the array
-    for (StringVector::const_iterator in = argv.begin() + ignore_first_;
-         in < argv.end() - nfinal; ++in) {
-      String active_name = active.canonicalName();
-      String el = *in;
-      //  check if the element is a key
-      if (index_.count(el) == 0) {
-        // input
-        // is the current active argument expecting more inputs?
-        if (active.fixed && active.fixed_nargs <= consumed)
-          argumentError(String("attempt to pass too many inputs to ").append(active_name),
-                        true);
-        if (active.fixed && active.fixed_nargs == 1) {
-          variables_[index_[active_name]].castTo<String>() = el;
-        } else {
-          variables_[index_[active_name]].castTo<StringVector>().push_back(el);
+          it = argv.erase(it);
+          if (!val.empty()) {
+            it = argv.insert(it, val);
+          }
+          it = argv.insert(it, arg);
         }
-        consumed++;
-      } else {
-        // new key!
-        // has the active argument consumed enough elements?
-        if ((active.fixed && active.fixed_nargs != consumed) ||
-            (!active.fixed && active.variable_nargs == '+' && consumed < 1))
-          argumentError(String("encountered argument ")
-                            .append(el)
-                            .append(" when expecting more inputs to ")
-                            .append(active_name),
-                        true);
-        active = arguments_[index_[el]];
-        // check if we've satisfied the required arguments
-        if (active.optional && nrequired > 0)
-          argumentError(String("encountered optional argument ")
-                            .append(el)
-                            .append(" when expecting more required arguments"),
-                        true);
-        // are there enough arguments for the new argument to consume?
-        if ((active.fixed && active.fixed_nargs > (argv.end() - in - nfinal - 1)) ||
-            (!active.fixed && active.variable_nargs == '+' &&
-             !(argv.end() - in - nfinal - 1)))
-          argumentError(String("too few inputs passed to argument ").append(el), true);
-        if (!active.optional) nrequired--;
-        consumed = 0;
+        if (it != argv.end()) {
+          ++it;
+        }
       }
     }
 
-    for (StringVector::const_iterator in =
-        std::max(argv.begin() + ignore_first_, argv.end() - nfinal);
-         in != argv.end(); ++in) {
-      String el = *in;
-      // check if we accidentally find an argument specifier
-      if (index_.count(el))
-        argumentError(String("encountered argument specifier ")
-                          .append(el)
-                          .append(" while parsing final required inputs"),
-                      true);
-      if (final.fixed && final.fixed_nargs == 1) {
-        variables_[index_[final_name_]].castTo<String>() = el;
-      } else {
-        variables_[index_[final_name_]].castTo<StringVector>().push_back(el);
+    bool is_multi_shortarg (const std::string &s) const noexcept {
+      return s[0] == '-' && s[1] != '-' && s.size() > 2;
+    }
+
+    void expand_shortargs (std::vector<std::string> &argv) const {
+      int new_argc = argv.size();
+      for (const auto &arg : argv) {
+        if (this->is_multi_shortarg(arg)) {
+          new_argc += arg.size() - 2;
+        }
       }
-      nfinal--;
-    }
 
-    // check that all of the required arguments have been encountered
-    if (nrequired > 0 || nfinal > 0)
-      argumentError(String("too few required arguments passed to ").append(app_name_), true);
-  }
+      argv.reserve(new_argc);
 
-  // --------------------------------------------------------------------------
-  // Retrieve
-  // --------------------------------------------------------------------------
-  template<typename T>
-  T &retrieve (const String &name) {
-    if (index_.count(delimit(name)) == 0) throw std::out_of_range("Key not found");
-    size_t N = index_[delimit(name)];
-    return variables_[N].castTo<T>();
-  }
-
-  // --------------------------------------------------------------------------
-  // Properties
-  // --------------------------------------------------------------------------
-  String usage () {
-    // premable app name
-    std::ostringstream help;
-    help << "Usage: " << escape(app_name_);
-    size_t indent = help.str().size();
-    size_t linelength = 0;
-
-    // get the required arguments
-    for (ArgumentVector::const_iterator it = arguments_.begin(); it != arguments_.end(); ++it) {
-      Argument arg = *it;
-      if (arg.optional) continue;
-      if (arg.name.compare(final_name_) == 0) continue;
-      help << " ";
-      String argstr = arg.toString();
-      if (argstr.size() + linelength > 80) {
-        help << "\n" << String(indent, ' ');
-        linelength = 0;
-      } else {
-        linelength += argstr.size();
+      auto it = argv.begin();
+      while (it != argv.end()) {
+        auto arg = *it;
+        if (this->is_multi_shortarg(arg)) {
+          it = argv.erase(it);
+          for (size_t i = arg.size() - 1; i > 0; i--) {
+            it = argv.insert(it, "-" + std::string(1, arg[i]));
+          }
+        } else {
+          ++it;
+        }
       }
-      help << argstr;
     }
 
-    // get the optional arguments
-    for (ArgumentVector::const_iterator it = arguments_.begin(); it != arguments_.end(); ++it) {
-      Argument arg = *it;
-      if (!arg.optional) continue;
-      if (arg.name.compare(final_name_) == 0) continue;
-      help << " ";
-      String argstr = arg.toString();
-      if (argstr.size() + linelength > 80) {
-        help << "\n" << String(indent, ' ');
-        linelength = 0;
-      } else {
-        linelength += argstr.size();
+    void print_help_string () const {
+      int help_len = std::string("-h, --help").size();
+      int max_len = help_len;
+      int rightpad = 4;
+
+      const char *leftpadstr = "    ";
+
+      // Print usage line
+      fprintf(stdout, "Usage: %s [-h,--help] ", m_argv[0].c_str());
+      for (const auto &as : m_args) {
+        auto sa = as.shortarg;
+        auto la = as.longarg;
+
+        auto lbrak = as.required ? "" : "[";
+        auto rbrak = as.required ? "" : "]";
+
+        if (!sa.empty()) {
+          if (!la.empty()) {
+            fprintf(stdout, "%s%s,%s%s ", lbrak, sa.c_str(), la.c_str(), rbrak);
+          } else {
+            fprintf(stdout, "%s%s%s ", lbrak, sa.c_str(), rbrak);
+          }
+        } else {
+          fprintf(stdout, "%s%s%s ", lbrak, la.c_str(), rbrak);
+        }
       }
-      help << argstr;
-    }
+      fprintf(stdout, "\n\n");
 
-    // get the final argument
-    if (!final_name_.empty()) {
-      Argument arg = arguments_[index_[final_name_]];
-      String argstr = arg.toString(false);
-      if (argstr.size() + linelength > 80) {
-        help << "\n" << String(indent, ' ');
-        linelength = 0;
-      } else {
-        linelength += argstr.size();
+      // Determine max len
+      for (const auto &as : m_args) {
+        int shortlen = as.shortarg.empty() ? 0 : as.shortarg.size();
+        int longlen = as.longarg.empty() ? 0 : as.longarg.size();
+
+        int arg_len = (shortlen && longlen) ? (shortlen + 2 + longlen) : (shortlen + longlen);
+        if (arg_len > max_len)
+          max_len = arg_len;
       }
-      help << argstr;
+
+      fprintf(stdout, "Arguments:\n");
+      fprintf(stdout, "%s-h, --help", leftpadstr);
+      for (int i = 0; i < (int) (max_len + rightpad - help_len); i++) {
+        fprintf(stdout, " ");
+      }
+      fprintf(stdout, "Show this help message and exit\n");
+      for (const auto &as : m_args) {
+        auto sa = as.shortarg;
+        auto la = as.longarg;
+
+        if (!sa.empty()) {
+          if (!la.empty()) {
+            fprintf(stdout, "%s%s, %s", leftpadstr, sa.c_str(), la.c_str());
+          } else {
+            fprintf(stdout, "%s%s", leftpadstr, sa.c_str());
+          }
+        } else {
+          fprintf(stdout, "%s%s", leftpadstr, la.c_str());
+        }
+
+        int shortlen = sa.empty() ? 0 : sa.size();
+        int longlen = la.empty() ? 0 : la.size();
+        int arg_len = (shortlen && longlen) ? (shortlen + 2 + longlen) : (shortlen + longlen);
+        for (int j = 0; j < max_len + rightpad - arg_len; j++) {
+          fprintf(stdout, " ");
+        }
+
+        fprintf(stdout, "%s\n", as.helpstr.c_str());
+      }
     }
 
-    return help.str();
-  }
+  public:
+    parser (int argc, char *argv[]) {
+      m_argv = std::vector<std::string>(argv, argv + argc);
 
-  void useExceptions (bool state) { use_exceptions_ = state; }
+      // Reformat argv in case --arg=val notation is used
+      this->remove_equals(m_argv);
 
-  bool empty () const { return index_.empty(); }
+      // Expand shortargs in case -ab notation is used
+      this->expand_shortargs(m_argv);
 
-  void clear () {
-    ignore_first_ = true;
-    required_ = 0;
-    index_.clear();
-    arguments_.clear();
-    variables_.clear();
-  }
-
-  bool exists (const String &name) const { return index_.count(delimit(name)) > 0; }
-
-  size_t count (const String &name) {
-    // check if the name is an argument
-    if (index_.count(delimit(name)) == 0) return 0;
-    size_t N = index_[delimit(name)];
-    Argument arg = arguments_[N];
-    Any var = variables_[N];
-    // check if the argument is a vector
-    if (arg.fixed) {
-      return !var.castTo<String>().empty();
-    } else {
-      return var.castTo<StringVector>().size();
+      m_argc = m_argv.size();
     }
-  }
-};
 
-#endif //LINUX_ARGPARSE_H
+    bool add (const std::string &shortarg,
+              const std::string &longarg,
+              const std::string &helpstr,
+              mode m = mode::OPTIONAL) {
+
+      // Can't have both argstrings be empty
+      if (shortarg.empty() && longarg.empty()) {
+        m_any_adds_failed = true;
+        return false;
+      }
+
+      // Argstrings must be formatted properly
+      if (!shortarg.empty() && (shortarg.size() != 2 || shortarg[0] != '-' || shortarg[1] == '-')) {
+        m_any_adds_failed = true;
+        return false;
+      }
+      if (!longarg.empty() && (longarg.size() <= 2 || longarg[0] != '-' || longarg[1] != '-')) {
+        m_any_adds_failed = true;
+        return false;
+      }
+
+      // -h, --help are reserved
+      if (shortarg == "-h" || longarg == "--help") {
+        m_any_adds_failed = true;
+        return false;
+      }
+
+      // No empty help string
+      if (helpstr.empty()) {
+        m_any_adds_failed = true;
+        return false;
+      }
+
+      // No duplicate short/long args
+      auto has_duplicate_args = [&] (const argstruct &as) {
+        return as.shortarg == shortarg || as.longarg == longarg;
+      };
+      if (std::count_if(m_args.begin(), m_args.end(), has_duplicate_args) > 0) {
+        m_any_adds_failed = true;
+        return false;
+      }
+
+      bool booltype = (m == mode::BOOLEAN);
+      bool required = (m == mode::REQUIRED);
+
+      m_args.emplace_back(shortarg, longarg, helpstr, booltype, required, false);
+
+      return true;
+    }
+
+    argmap parse () {
+      std::map<std::string, std::string> map;
+      bool success = true;
+
+      bool help_passed = false;
+
+      if (m_any_adds_failed) {
+        success = false;
+      } else if (m_argc == 2 && (m_argv[1] == "-h" || m_argv[1] == "--help")) {
+        // Check if -h, --help was passed as only arg
+        this->print_help_string();
+        std::exit(EXIT_SUCCESS);
+      } else {
+        // Check for rogue "="
+        auto is_rogue_equal = [] (const std::string &s) { return s == "="; };
+        if (std::any_of(m_argv.begin(), m_argv.end(), is_rogue_equal)) {
+          success = false;
+        } else {
+          // Initialize all booltype args to false and all other
+          // args to the empty string
+          for (const auto &arg : m_args) {
+            auto default_val = arg.booltype ? "0" : "";
+
+            map[arg.shortarg] = default_val;
+            map[arg.longarg] = default_val;
+          }
+
+          // Assign args
+          for (int i = 1; i < m_argc; i++) {
+            for (auto &as : m_args) {
+              if (as.shortarg == m_argv[i] || as.longarg == m_argv[i]) {
+                std::string val;
+                if (as.booltype) {
+                  val = "1";
+                } else if (i + 1 < m_argc) {
+                  val = m_argv[++i];
+                } else {
+                  success = false;
+                }
+
+                map[as.shortarg] = val;
+                map[as.longarg] = val;
+
+                as.parsed = true;
+              }
+            }
+          }
+          map.erase("");
+
+          if (success) {
+            // Check for required args
+            auto is_unparsed = [] (const argstruct &as) { return as.required && !as.parsed; };
+            if (std::any_of(m_args.begin(), m_args.end(), is_unparsed)) {
+              success = false;
+            }
+          }
+        }
+      }
+
+      return argmap(map, success);
+    }
+
+    int argc () const noexcept {
+      return m_argc;
+    }
+
+    const std::vector<std::string> &argv () const noexcept {
+      return m_argv;
+    }
+  };
+}
+
+#endif // ARGPARSER_HPP_

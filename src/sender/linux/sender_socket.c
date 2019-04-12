@@ -13,11 +13,7 @@ choose_port (const char *ip, uint16_t from, uint16_t to) {
 
 int
 get_ready_socksfd (const char *ip, uint16_t port) {
-#ifdef DEBUG
-  const int domain = PF_INET;
-#else
   const int domain = AF_INET;
-#endif
   char service[8] = {'\0'};
   sprintf(service, "%hu", port);
   struct addrinfo *addrs = NULL;

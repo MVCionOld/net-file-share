@@ -1,109 +1,112 @@
-ArgumentParser
-==============
-A slimline C++ class for parsing command-line arguments, with an interface similar to python's class of the same name.
+**NOTE**: *The old C code is located in the `c/` directory. While it's still functional (as far as I can tell), it should be considered more-or-less deprecated for use in C++ programs.*
 
-Usage
------
-An example says it best:
-  
-    int main(int argc, const char** argv) {
+Simple command-line parser for C++11 programs. See `test/` for info on running test suite.
 
-      // make a new ArgumentParser
-      ArgumentParser parser;
+## Example
 
-      // add some arguments to search for
-      parser.addArgument("-a");
-      parser.addArgument("-b");
-      parser.addArgument("-c", "--cactus", 1);
-      parser.addArgument("-o", "--optional");
-      parser.addArgument("-r", "--required", 1, true);
-      parser.addArgument("--five", 5);
-      parser.addArgument("--atleast", '+');
-      parser.addArgument("--any", '*');
-      parser.addFinalArgument("output");
+*example.cpp*:
+```cpp
+#include <iostream>
+#include <string>
 
-      // parse the command-line arguments - throws if invalid format
-      parser.parse(argc, argv);
+#include "argparser.hpp"
 
-      // if we get here, the configuration is valid
-      int cactus = parser.retrieve<int>("cactus");
-      return cactus;
+int main(int argc, char* argv[]) {
+    ap::parser p(argc, argv);
+    p.add("-f", "--firstname",  "First name",     ap::mode::REQUIRED);
+    p.add("-l", "--lastname",   "Last name",      ap::mode::REQUIRED);
+    p.add("-v", "--verbose",    "Verbose output", ap::mode::BOOLEAN);
+    p.add("-s", "--salutation", "Salutation");    // Defaults to ap::mode::OPTIONAL
+    
+    auto args = p.parse();
+
+    if (!args.parsed_successfully()) {
+	std::cerr << "Unsuccessful parse\n";	
+        return -1;
     }
+   
+    // Index into map with either shortarg or longarg 
+    auto first = args["-f"];
+    auto last  = args["--lastname"];
 
-If the supplied format is incorrect or we explicitly call `parser.usage()`, a usage string is printed to the terminal:
+    // Optional args are empty if not specified
+    auto salutation = (args["-s"].empty() ? "Hello" : args["-s"]);
+    
+    if (std::stoi(args["-v"])) {
+        // Verbose output
+        std::cout << salutation << ", " << first << " " << last << "!\n";
+    } else {
+        // Regular output
+        std::cout << salutation << ", " << first << "\n";
+    }
+    
+    return 0;
+}
+```
 
-    Usage: app_name --required REQUIRED [-a] [-b] [--optional] [--cactus CACTUS] 
-                    [--five FIVE FIVE FIVE ...] [--atleast ATLEAST [ATLEAST ...]]
-                    [--any [ANY ...]] output
+Compile:
 
-Compiling
----------
-Just grab the `argparse.hpp` header and go! The `ArgumentParser` is the only definition in `argparse.hpp`. Dependent classes are nested within `ArgumentParser`.
+	g++ example.cpp -o example -std=c++11
+    
+Run:
 
-Format
-------
-**specifier**  
-Arguments can be specified in a number of formats. They can have single character short names prefixed with a single '-':
+	$ ./example -h
+	Usage: ./example [-h,--help] -f,--firstname -l,--lastname [-v,--verbose] [-s,--salutation] 
+    
+    Arguments:
+        -h, --help          Show this help message and exit
+        -f, --firstname     First name
+        -l, --lastname      Last name
+        -v, --verbose       Verbose output
+        -s, --salutation    Salutation
 
-    -b
+	$ ./example -f John --lastname=Doe
+	Hello, John
 
-or long name prefixed with '--':
+	$ ./example -f John --lastname=Doe -v
+    Hello, John Doe!
+    
+	$ ./example -f John --lastname=Doe -v --salutation=Hey
+	Hey, John Doe!
+	
+	$ ./example
+	Unsuccessful parse
+	
+	$ ./example -f John
+	Unsuccessful parse
+	
+	$ ./example -l Doe
+	Unsuccessful parse
 
-    --banana
-
-**number**  
-The number of expected inputs trailing an argument can also be specified. This comes in two flavours:
-
-
-1. fixed number arguments
-2. variable number arguments
-
-Fixed number arguments are simply specified with an integer which is `0` or greater. If that exact number of inputs trailing the argument is not found, the parser will fail with a `std::invalid_argument` exception. If the number is `1`, the input is stored as a string. If the number is greater than `1`, the input is stored as a vector of strings.
-
-
-Variable number arguments allow for an undetermined number of inputs trailing an argument. The parser will attempt to consume as many arguments as possible until the next valid argument is encountered. There are two types of variable argument specifiers, and they use the same syntax as regular expressions:
-
-1. `'+'` matches one or more inputs
-2. `'*'` matches zero or more inputs
-
-In both cases, the output is stored as a vector of strings. If the number of inputs is not specified, it defaults to `0`.
-
-**required/optional**  
-Arguments can be marked as either required or optional. All required arguments must appear before any optional arguments in the command-line input.
-
-**final**  
-Often UNIX command-line tools have an un-named final argument that collects all remaining inputs. The name that these inputs map to internally can be specified using the `addFinalArgument()` method of `ArgumentParser`. Along with its name, you can also specify the number of inputs to parse. Since it is un-named however, there are a number of restrictions:
-
-1. The final argument can always require a fixed number of inputs
-2. If a fixed number of inputs is specified, it must be `1` or greater
-3. The final argument can only take the `'+'` specifier if an argument with variadic number of inputs has not already been specified. This restiction exists because arguments do not have a fixed ordering and a variadic argument just before the final (un-named) argument will consume all of the reminaing arguments unless the final argument requires a fixed number of inputs
-
-Retrieving
-----------
-Inputs to an argument can be retrieved with the `retrieve()` method of `ArgumentParser`. Importantly, if the inputs are parsed as an array, they must be retrieved as an array. Failure to do so will result in a `std::bad_cast` exception. 
-
-Arguments can also be cast to other types as long as the cast is trivial. For instance, we could retrieve the array of strings from the '--five' argument as an array of ints:
-
-    vector<int> five = parser.retrieve<vector<int> >("five");
-
-or convert the required argument to a float:
-
-    float  req = parser.retrieve<float>("r");
-
-Method Summary
---------------
-
-    ArgumentParser()      default constructor
-    useExceptions()       if true, parsing errors throw exceptions rather than printing to stderr and exiting
-    appName()             set the name of the application
-    addArgument()         specify an argument to search for
-    addFinalArgument()    specify a final un-named argument
-    ignoreFirstArgument() don't parse the first argument (usually the caller name on UNIX)
-    parse()               invoke the parser on a `char**` array
-    retrieve()            retrieve a set of inputs for an argument
-    usage()               return a formatted usage string
-    empty()               check if the set of specified arguments is empty
-    clear()               clear all specified arguments
-    exists()              check if an argument has been found
-    count()               count the number of inputs for an argument
-
+## Details
+* `ap::parser::parse()` returns map-like object that provides read-only access to parsed arguments
+* Args have one of three modes
+	* `ap::mode::OPTIONAL`: Arg may or may not be populated (default mode)
+		* Unused args are assigned the empty string
+	* `ap::mode::REQUIRED`: Failure to populate arg results in unsuccessful parse
+	* `ap::mode::BOOLEAN`: Used to track presence or absence of arg (i.e. does not populate value)
+		* Value in resulting map is `"1"` if arg was passed and `"0"` otherwise
+* Args can be assigned either with a space or an equals sign
+	* In above example, `-f`, `--firstname` can be assigned values using any of the following schemes:
+		* `./example -f John`
+		* `./example -f=John`
+		* `./example --firstname John`
+		* `./example --firstname=John`
+* Boolean flags can be chained together
+	* e.g. if the Boolean shortargs `-a`, `-b`, `-c` are added, then any of the following invocations of the program are valid:
+		* `./example -a -b -c`
+		* `./example -abc`
+		* `./example -ab -c`
+* Rules for arg string formatting (failure to abide by rules results in unsuccessful parse):
+	* Short arg must be a single dash `-` followed by a single character
+		* Valid: `-a`
+		* Invalid: `-`, `a`, `--a`, `-aa`
+	* Long arg must be two dashes `--` followed by any number of additional characters
+		* Valid: `--l`, `--longarg`
+		* Invalid: `longarg`, `-longarg`, `-`, `--`
+	* One of either short arg or long arg (but not both) may be the empty string
+    * The help string is not optional (i.e. cannot use empty string)
+    * Arg strings `-h`, `--help` are reserved
+* A help string is automatically constructed (and corresponding help args `-h` and `--help` automatically provided)
+	* Attempting to manually add arg strings `-h`, `--help` will result in a parse failure
+	* If help args are passed, help string is displayed and the program is terminated

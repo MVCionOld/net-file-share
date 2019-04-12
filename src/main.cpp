@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdexcept>
 
 #include "argparse/argparse.hpp"
@@ -5,36 +6,58 @@
 #include "sender/CSender.hpp"
 
 
-int main (int argc, const char **argv) {
-  ArgumentParser parser;
-  parser.addArgument("-r", "--receive");
-  parser.addArgument("-s", "--send");
-  parser.addArgument("-i", "--ip");
-  parser.addArgument("-f", "--file");
-  parser.addArgument("-t", "--threads");
-  parser.parse(static_cast<size_t>(argc), argv);
-  if (parser.exists("--receive")) {
-    for (const auto &param: {"-s", "-i", "-f", "-t"}) {
-      if (parser.exists(param)) {
+int main (int argc, char *argv[]) {
+  ap::parser parser(argc, argv);
+  parser.add(
+      "-r",
+      "--receive",
+      "run program in receiver mode",
+      ap::mode::BOOLEAN
+  );
+  parser.add(
+      "-s",
+      "--send",
+      "run program in sending mode",
+      ap::mode::BOOLEAN
+  );
+  parser.add(
+      "-i",
+      "--ip",
+      "ip address"
+  );
+  parser.add(
+      "-f",
+      "--file",
+      "file's path"
+  );
+  parser.add(
+      "-t",
+      "--threads",
+      "amount of threads"
+  );
+  auto args = parser.parse();
+  if (!args.parsed_successfully()) {
+    throw std::invalid_argument("Invalid arguments.");
+  }
+  if (args["-s"] == args["-r"]) {
+    throw std::invalid_argument("Undefined runtime mode.");
+  }
+  if (std::stoi(args["-r"])) {
+    for (const auto &param: {"-i", "-f", "-t"}) {
+      if (!args[param].empty()) {
         throw std::invalid_argument("Too much arguments.");
       }
     }
     CReceiver receiver;
     receiver.Receive();
-  } else if (parser.exists("--send")) {
-    const bool correct_arg = parser.exists("--ip")
-                             && parser.exists("--file");
-    if (!correct_arg) {
+  } else {
+    const bool mismatch_arg = args["-i"].empty() || args["-f"].empty();
+    if (mismatch_arg) {
       throw std::invalid_argument("No enough arguments for \"send\".");
     }
-    const std::string ip = parser.retrieve<std::string>("ip");
-    const std::string file_path = parser.retrieve<std::string>("file");
-    const size_t threads_amt = !parser.exists("threads") ? 1
-                                                         : parser.retrieve<size_t>("threads");
-    CSender sender(ip);
-    sender.Send(file_path, threads_amt);
-  } else {
-    throw std::invalid_argument("Invalid arguments.");
+    const size_t threads_amt = args["-t"].empty() ? 1 : std::stoi(args["-t"]);
+    CSender sender(args["-i"]);
+    sender.Send(args["-f"], threads_amt);
   }
   return 0;
 }

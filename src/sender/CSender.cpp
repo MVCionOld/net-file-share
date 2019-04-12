@@ -14,7 +14,6 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   const int source_fd = open_file(file_path_.c_str());
   auto file_size = get_file_size(source_fd);
   auto source_map = map_file_r(source_fd, file_size);
-  close_file(source_fd);
   const uint16_t port = choose_port(
       ip_.c_str(),
       PortRange::FROM,
@@ -22,7 +21,11 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   );
   std::vector<uint16_t> ports = {port};
   sockfd_ = get_ready_socksfd(ip_.c_str(), port);
-  makeHandshake(sockfd_, ports);
+  if (sockfd_ == ERROR_FD) {
+    return;
+  }
+  makeHandshake(source_fd, ports);
+  close_file(source_fd);
   std::vector<int> sockfds = {sockfd_};
   std::vector<std::thread> senders;
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
@@ -73,7 +76,7 @@ void CSender::makeHandshake (int fd, std::vector<uint16_t> &ports) {
   /*
     Handshake
     {
-      size_t   threads_amt
+      size_t   ports_amt
       uint64_t file_size
       string   file_nm
     };
@@ -106,7 +109,8 @@ void CSender::makeHandshake (int fd, std::vector<uint16_t> &ports) {
       reinterpret_cast<void *>(&recv_buff),
       sizeof(RecvHandshakeBuff)
   );
-  for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
+  threads_amt_ = recv_buff.ports_amt; // receiver hasn't enough ports
+  for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
     ports.emplace_back(recv_buff.ports[port_idx]);
   }
 }

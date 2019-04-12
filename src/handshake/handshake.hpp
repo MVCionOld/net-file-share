@@ -11,7 +11,7 @@ struct SendHandshakeBuff {
 };
 
 struct RecvHandshakeBuff {
-  size_t threads_amt = 0;
+  size_t ports_amt = 0;
   size_t ports[MAX_THREADS_AMT] = {0};
 };
 

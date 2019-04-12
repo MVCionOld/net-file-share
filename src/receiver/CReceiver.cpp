@@ -2,8 +2,8 @@
 
 
 CReceiver::CReceiver () {
-  auto port = choose_available_port(PortRange::FROM, PortRange::TO);
-  sockfd_ = get_ready_sockrfd(port);
+  port_ = choose_available_port(PortRange::FROM, PortRange::TO);
+  sockfd_ = get_ready_sockrfd(port_);
 }
 
 CReceiver::~CReceiver () {
@@ -81,12 +81,13 @@ void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
       HandshakeVal::HANDSHAKE_SIZE
   );
   /*
-    struct Handshake {
-      size_t threads_amt;
-      uint64_t file_size;
-      std::string file_nm;
+    Handshake
+    {
+      size_t   ports_amt
+      uint64_t file_size
+      string   file_nm
     };
-   */
+ */
   const size_t file_size_off = sizeof(size_t);
   const size_t file_nm_off = sizeof(size_t) + sizeof(uint64_t);
   parse(
@@ -101,13 +102,11 @@ void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
   );
   file_nm = std::move(std::string(buff.buffer + file_nm_off));
   RecvHandshakeBuff recv_buff{};
-  recv_buff.threads_amt = threads_amt_;
-  recv_buff.ports[0] = static_cast<size_t >(sockfd_);
+  recv_buff.ports_amt = threads_amt_;
+  recv_buff.ports[0] = port_;
   ports.emplace_back(recv_buff.ports[0]);
   for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
-    recv_buff.ports[port_idx] = static_cast<size_t>(
-        get_ready_sockrfd(choose_available_port(PortRange::FROM, PortRange::TO))
-    );
+    recv_buff.ports[port_idx] = choose_available_port(PortRange::FROM, PortRange::TO);
     ports.emplace_back(recv_buff.ports[port_idx]);
   }
   write_package(

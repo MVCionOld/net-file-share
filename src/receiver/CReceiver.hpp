@@ -35,7 +35,7 @@ private:
 
 private:
   int sockfd_ = ERROR_FD;
-  size_t threads_amt_ = 1;
+  size_t threads_amt_ = 1, port_;
 };
 
 #endif //SRC_CRECEIVER_H

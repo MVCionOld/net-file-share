@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdexcept>
-
 #include "argparse/argparse.hpp"
 #include "receiver/CReceiver.hpp"
 #include "sender/CSender.hpp"

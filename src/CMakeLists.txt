@@ -30,4 +30,3 @@ add_executable(
 
 target_link_libraries(src ${CMAKE_DL_LIBS})
 target_link_libraries(src pthread)
-target_link_libraries(src rt)

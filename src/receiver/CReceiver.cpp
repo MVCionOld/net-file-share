@@ -14,7 +14,7 @@ void CReceiver::Receive () {
   if (sockfd_ == FdTypeVal::ERROR_FD) {
     return;
   }
-  int clifd = makeHandshake(); //accept_clientfd(sockfd_);
+  int clifd = makeHandshake();
   std::string file_nm;
   uint64_t file_size;
   std::vector<int> sockfds = {sockfd_}, clifds = {clifd};
@@ -26,21 +26,21 @@ void CReceiver::Receive () {
   const auto block_size = file_size / threads_amt_;
   std::vector<std::thread> receivers;
   auto receiver_action =
-      [block_size, dest_map, file_size, clifds] (size_t thread_id, size_t threads_amt) {
+      [block_size, dest_map, file_size, clifds] (size_t receiver_id, size_t threads_amt) {
         auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
         byte package[2 * PACKAGE_SIZE];
         for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
           auto package_size = static_cast<size_t>(PACKAGE_SIZE);
           if (pkg_id == pkg_amt - 1) {
-            if (thread_id == threads_amt - 1) {
-              package_size = file_size - block_size * thread_id
+            if (receiver_id == threads_amt - 1) {
+              package_size = file_size - block_size * receiver_id
                              - PACKAGE_SIZE * pkg_id;
             } else {
               package_size = block_size - PACKAGE_SIZE * pkg_id;
             }
           }
           read_package(
-              clifds[thread_id],
+              clifds[receiver_id],
               package,
               package_size
           );
@@ -48,10 +48,9 @@ void CReceiver::Receive () {
               dest_map,
               package,
               package_size,
-              thread_id * block_size + pkg_id * PACKAGE_SIZE
+              receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
         }
-        int a;
       };
   for (auto &accepter: accepters) {
     accepter.join();

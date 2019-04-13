@@ -11,8 +11,6 @@
 
 #include "../../handshake/glob_consts.h"
 
-extern uint16_t
-choose_port (const char *ip, uint16_t from, uint16_t to);
 
 extern int
 get_ready_socksfd (const char *ip, uint16_t port);

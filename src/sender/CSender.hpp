@@ -1,9 +1,11 @@
 #ifndef SRC_CSENDER_H
 #define SRC_CSENDER_H
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <thread>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,8 @@ public:
   ~CSender ();
 
 private:
+  void makeHandshake (uint16_t &port);
+
   void setUpConnection (int fd, std::vector<uint16_t> &ports);
 
 private:

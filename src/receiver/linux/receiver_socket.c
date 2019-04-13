@@ -37,7 +37,7 @@ choose_available_port (uint16_t from, uint16_t to) {
         .sin_addr.s_addr = INADDR_ANY
     };
 #ifdef DEBUG
-    puts("Opened free port");
+    puts("Opened possible free port.");
 #endif
     const int errcode = bind(
         sockfd,
@@ -83,7 +83,7 @@ get_ready_sockrfd (uint16_t port) {
       .sin_addr.s_addr = INADDR_ANY
   };
 #ifdef DEBUG
-  puts("Opened port");
+  puts("Opened port for listening.");
 #endif
   const int errcode = bind(
       sockfd,

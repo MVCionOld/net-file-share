@@ -1,16 +1,6 @@
 #include "sender_socket.h"
 
 
-uint16_t
-choose_port (const char *ip, uint16_t from, uint16_t to) {
-  /*
-   *
-   * TO-DO: find available receiver's port
-   *
-   */
-  return 27650;
-}
-
 int
 get_ready_socksfd (const char *ip, uint16_t port) {
   const int domain = AF_INET;

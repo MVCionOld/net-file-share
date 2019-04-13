@@ -1,12 +1,14 @@
 #ifndef SRC_CRECEIVER_H
 #define SRC_CRECEIVER_H
 
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
 
 #include "../handshake/handshake.hpp"
+
 extern "C" {
 #include "../handshake/glob_consts.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -28,8 +30,10 @@ public:
   ~CReceiver ();
 
 private:
-  void setUpConnection (int clifd, std::vector<uint16_t> &ports,
-                        std::vector<int> &sockfds, std::vector<int> &clifds,
+  int makeHandshake ();
+
+  void setUpConnection (int clifd, std::vector<int> &sockfds,
+                        std::vector<int> &clifds,
                         std::string &file_nm, uint64_t &file_size,
                         std::vector<std::thread> &accepters);
 
@@ -37,7 +41,7 @@ private:
 
 private:
   int sockfd_ = ERROR_FD;
-  size_t threads_amt_ = 1, port_;
+  size_t threads_amt_ = 1, activated_port_;
 };
 
 #endif //SRC_CRECEIVER_H

@@ -33,7 +33,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   }
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
     senders.emplace_back(
-        [&] (int sender_id) {
+        [&] (size_t sender_id) {
           auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
           byte package[2 * PACKAGE_SIZE];
           for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
@@ -46,17 +46,23 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
                 package_size = block_size - PACKAGE_SIZE * pkg_id;
               }
             }
+            fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 0, sender_id, pkg_id);
+            fflush(stdout);
             read_mmap(
                 package,
                 source_map,
                 package_size,
                 sender_id * block_size + pkg_id * PACKAGE_SIZE
             );
+            fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 1, sender_id, pkg_id);
+            fflush(stdout);
             write_package(
                 sockfds[sender_id],
                 package,
                 package_size
             );
+            fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 2, sender_id, pkg_id);
+            fflush(stdout);
           }
         },
         thread_id);

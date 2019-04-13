@@ -2,7 +2,7 @@
 
 
 enum {
-  MESSAGE_QUEUE_SIZE = 16
+  MESSAGE_QUEUE_SIZE = SOMAXCONN
 };
 
 

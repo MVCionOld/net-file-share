@@ -25,6 +25,7 @@ void CReceiver::Receive () {
   close_file(dest_fd);
   const auto block_size = file_size / threads_amt_;
   std::vector<std::thread> receivers;
+
   auto receiver_action =
       [block_size, dest_map, file_size, clifds] (size_t receiver_id, size_t threads_amt) {
         auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
@@ -39,19 +40,26 @@ void CReceiver::Receive () {
               package_size = block_size - PACKAGE_SIZE * pkg_id;
             }
           }
+          fprintf(stdout, "stage: %d; receiver: %d; package: %d / %d\n", 0, receiver_id, pkg_id, pkg_amt);
+          fflush(stdout);
           read_package(
               clifds[receiver_id],
               package,
               package_size
           );
+          fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
+          fflush(stdout);
           write_mmap(
               dest_map,
               package,
               package_size,
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
+          fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 2, receiver_id, pkg_id);
+          fflush(stdout);
         }
       };
+
   for (auto &accepter: accepters) {
     accepter.join();
   }

@@ -15,52 +15,51 @@ void CReceiver::Receive () {
   std::vector<uint16_t> ports;
   std::string file_nm;
   uint64_t file_size;
-  makeHandshake(clifd, ports, file_nm, file_size);
+  std::vector<int> sockfds = {sockfd_}, clifds = {clifd};
+  std::vector<std::thread> accepters;
+  setUpConnection(clifd, ports, sockfds, clifds, file_nm, file_size, accepters);
   int dest_fd = prepareFile(file_nm, file_size);
   auto dest_map = map_file_w(dest_fd, file_size);
   close_file(dest_fd);
-  std::vector<int> sockfds = {sockfd_}, clifds = {clifd};
+  const auto receiver_size = file_size / threads_amt_;
   std::vector<std::thread> receivers;
-  for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
-    if (thread_id != 0) {
-      sockfds.emplace_back(get_ready_sockrfd(ports[thread_id]));
-      clifds.emplace_back(accept_clientfd(sockfds[thread_id]));
-    }
-    const auto receiver_size = file_size / threads_amt_;
-    receivers.emplace_back(
-        [receiver_size, dest_map, file_size, &clifds]
-            (size_t thread_id, size_t threads_amt) {
-          auto pkg_amt = static_cast<size_t>(receiver_size / PACKAGE_SIZE);
-          byte package[PACKAGE_SIZE];
-          for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
-            auto package_size = static_cast<size_t>(PACKAGE_SIZE);
-            if (pkg_id == pkg_amt - 1) {
-              if (thread_id == threads_amt - 1) {
-                package_size = file_size - receiver_size * thread_id
-                               - PACKAGE_SIZE * pkg_id;
-              } else {
-                package_size = receiver_size - PACKAGE_SIZE * pkg_id;
-              }
+  auto receiver_action =
+      [receiver_size, dest_map, file_size, &clifds] (size_t thread_id, size_t threads_amt) {
+        auto pkg_amt = static_cast<size_t>(receiver_size / PACKAGE_SIZE);
+        byte package[PACKAGE_SIZE];
+        for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
+          auto package_size = static_cast<size_t>(PACKAGE_SIZE);
+          if (pkg_id == pkg_amt - 1) {
+            if (thread_id == threads_amt - 1) {
+              package_size = file_size - receiver_size * thread_id
+                             - PACKAGE_SIZE * pkg_id;
+            } else {
+              package_size = receiver_size - PACKAGE_SIZE * pkg_id;
             }
-            read_package(
-                clifds[thread_id],
-                package,
-                package_size
-            );
-            write_mmap(
-                dest_map,
-                package,
-                package_size,
-                thread_id * receiver_size + pkg_id * PACKAGE_SIZE
-            );
           }
-        },
-        thread_id,
-        threads_amt_
-    );
+          read_package(
+              clifds[thread_id],
+              package,
+              package_size
+          );
+          write_mmap(
+              dest_map,
+              package,
+              package_size,
+              thread_id * receiver_size + pkg_id * PACKAGE_SIZE
+          );
+        }
+      };
+  for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
+    receivers.emplace_back(receiver_action, thread_id, threads_amt_);
+  }
+  for (auto &accepter: accepters) {
+    accepter.join();
   }
   for (auto &receiver: receivers) {
-    receiver.join();
+    if (receiver.joinable()) {
+      receiver.join();
+    }
   }
   for (auto clientfd: clifds) {
     close_sockrfd(clientfd);
@@ -72,8 +71,10 @@ void CReceiver::Receive () {
 }
 
 
-void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
-                               std::string &file_nm, uint64_t &file_size) {
+void CReceiver::setUpConnection (int clifd, std::vector<uint16_t> &ports,
+                                 std::vector<int> &sockfds, std::vector<int> &clifds,
+                                 std::string &file_nm, uint64_t &file_size,
+                                 std::vector<std::thread> &accepters) {
   SendHandshakeBuff buff;
   read_package(
       clifd,
@@ -106,8 +107,20 @@ void CReceiver::makeHandshake (int clifd, std::vector<uint16_t> &ports,
   recv_buff.ports[0] = port_;
   ports.emplace_back(recv_buff.ports[0]);
   for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
-    recv_buff.ports[port_idx] = choose_available_port(PortRange::FROM, PortRange::TO);
+    recv_buff.ports[port_idx] = choose_available_port(
+        PortRange::FROM,
+        PortRange::TO
+    );
     ports.emplace_back(recv_buff.ports[port_idx]);
+    sockfds.emplace_back(get_ready_sockrfd(ports[port_idx]));
+  }
+  for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
+    accepters.emplace_back(
+        [&] (size_t thread_idx) {
+          clifds.emplace_back(accept_clientfd(sockfds[thread_idx]));
+        },
+        port_idx
+    );
   }
   write_package(
       clifd,

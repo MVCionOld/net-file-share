@@ -8,12 +8,49 @@ enum {
 
 uint16_t
 choose_available_port (uint16_t from, uint16_t to) {
-  /*
-   *
-   * TO-DO: find available port
-   *
-   */
-  return 27650;
+  for (uint16_t port = from; port < to; ++port) {
+    const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+      perror("socket");
+      return 0;
+    }
+    int optval = 1;
+    const socklen_t optlen = (socklen_t)
+        sizeof(optval);
+    setsockopt(
+        sockfd,
+        SOL_SOCKET,
+        SO_REUSEADDR,
+        &optval,
+        optlen
+    );
+    setsockopt(
+        sockfd,
+        SOL_SOCKET,
+        SO_REUSEPORT,
+        &optval,
+        optlen
+    );
+    struct sockaddr_in server_socket = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+        .sin_addr.s_addr = INADDR_ANY
+    };
+#ifdef DEBUG
+    puts("Opened free port");
+#endif
+    const int errcode = bind(
+        sockfd,
+        (struct sockaddr *) &server_socket,
+        sizeof(struct sockaddr_in)
+    );
+    if (errcode < 0) {
+      continue;
+    }
+    close(sockfd);
+    return port;
+  }
+  return 0;
 }
 
 int

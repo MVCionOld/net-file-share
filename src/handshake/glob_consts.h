@@ -13,8 +13,8 @@ enum FdTypeVal {
 };
 
 enum PortRange {
-  FROM,
-  TO
+  FROM = 59000,
+  TO = 60024
 };
 
 enum HandshakeVal {

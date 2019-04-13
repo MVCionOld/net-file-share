@@ -28,8 +28,10 @@ public:
   ~CReceiver ();
 
 private:
-  void makeHandshake (int clifd, std::vector<uint16_t> &ports,
-                      std::string &file_nm, uint64_t &file_size);
+  void setUpConnection (int clifd, std::vector<uint16_t> &ports,
+                        std::vector<int> &sockfds, std::vector<int> &clifds,
+                        std::string &file_nm, uint64_t &file_size,
+                        std::vector<std::thread> &accepters);
 
   int prepareFile (const std::string &file_nm, uint64_t file_size);
 

@@ -51,7 +51,7 @@ int main (int argc, char *argv[]) {
     CReceiver receiver;
     receiver.Receive();
   } else {
-    const bool mismatch_arg = args["-i"].empty() || args["-f"].empty();
+    const bool mismatch_arg = args["-i"].empty() or args["-f"].empty();
     if (mismatch_arg) {
       throw std::invalid_argument("No enough arguments for \"send\".");
     }

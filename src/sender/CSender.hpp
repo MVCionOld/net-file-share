@@ -9,6 +9,7 @@
 
 
 #include "../handshake/handshake.hpp"
+
 extern "C" {
 #include "../handshake/glob_consts.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -30,7 +31,7 @@ public:
   ~CSender ();
 
 private:
-  void makeHandshake (int fd, std::vector<uint16_t> &ports);
+  void setUpConnection (int fd, std::vector<uint16_t> &ports);
 
 private:
   int sockfd_ = ERROR_FD;

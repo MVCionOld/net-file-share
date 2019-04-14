@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/unistd.h>
+#include <zconf.h>
 
 #include "../../handshake/glob_consts.h"
 

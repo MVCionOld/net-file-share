@@ -27,7 +27,7 @@ void CReceiver::Receive () {
   std::vector<std::thread> receivers;
 
   auto receiver_action =
-      [block_size, dest_map, file_size, clifds] (size_t receiver_id, size_t threads_amt) {
+      [block_size, dest_map, file_size, &clifds] (size_t receiver_id, size_t threads_amt) {
         auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
         if (receiver_id == threads_amt - 1) {
           const auto last_block = file_size - block_size * receiver_id;

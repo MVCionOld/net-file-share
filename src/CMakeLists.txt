@@ -21,6 +21,8 @@ if (UNIX)
             handshake/glob_consts.h
             file_lib/linux/file_lib.c
             file_lib/linux/file_lib.h
+            utils/ProgressBar.cpp
+            utils/ProgressBar.hpp
     )
     target_link_libraries(src ${CMAKE_DL_LIBS})
     target_link_libraries(src pthread)
@@ -44,6 +46,8 @@ if (WIN32)
             handshake/glob_consts.h
             file_lib/win/FileLib.c
             file_lib/win/FileLib.h
+            utils/ProgressBar.cpp
+            utils/ProgressBar.hpp
     )
     target_link_libraries(src ${CMAKE_DL_LIBS})
     target_link_libraries(src pthread)

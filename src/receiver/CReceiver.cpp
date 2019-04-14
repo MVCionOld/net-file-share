@@ -25,9 +25,10 @@ void CReceiver::Receive () {
   close_file(dest_fd);
   const auto block_size = (file_size + threads_amt_ - 1) / threads_amt_;
   std::vector<std::thread> receivers;
+  ProgressBar progress_bar((file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE);
 
   auto receiver_action =
-      [block_size, dest_map, file_size, &clifds] (size_t receiver_id, size_t threads_amt) {
+      [this, block_size, dest_map, file_size, &clifds, &progress_bar] (size_t receiver_id, size_t threads_amt) {
         auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
         if (receiver_id == threads_amt - 1) {
           const auto last_block = file_size - block_size * receiver_id;
@@ -64,8 +65,10 @@ void CReceiver::Receive () {
               package_size,
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
-          fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 2, receiver_id, pkg_id);
-          fflush(stdout);
+          packages_received_++;
+          progress_bar.publish_progress(packages_received_);
+          //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 2, receiver_id, pkg_id);
+          //fflush(stdout);
         }
       };
 
@@ -137,10 +140,8 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
   for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
     accepters.emplace_back(
         [&] (size_t thread_idx) {
-          std::lock_guard<std::mutex> lock(ports_mutex);
-          printf("Accepting\n");
+          std::lock_guard<std::mutex> lock(ports_mutex_);
           clifds.emplace_back(accept_clientfd(sockfds[thread_idx]));
-          printf("Accepted: %d\n", clifds[clifds.size() - 1]);
         },
         port_idx
     );
@@ -150,7 +151,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
       reinterpret_cast<void *>(&recv_buff),
       sizeof(RecvHandshakeBuff)
   );
-  printf("Connection established!\n");
+  printf("Connection successfully established!\n");
   fflush(stdout);
 }
 

@@ -8,6 +8,7 @@
 
 
 #include "../handshake/handshake.hpp"
+#include "../utils/ProgressBar.hpp"
 
 extern "C" {
 #include "../handshake/glob_consts.h"
@@ -41,8 +42,9 @@ private:
 
 private:
   int sockfd_ = ERROR_FD;
-  size_t threads_amt_ = 1, activated_port_;
-  std::mutex ports_mutex;
+  size_t threads_amt_ = 1, activated_port_ = 1;
+  std::mutex ports_mutex_;
+  std::atomic<size_t> packages_received_{0};
 };
 
 #endif //SRC_CRECEIVER_H

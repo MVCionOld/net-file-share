@@ -11,6 +11,7 @@
 
 
 #include "../handshake/handshake.hpp"
+#include "../utils/ProgressBar.hpp"
 
 extern "C" {
 #include "../handshake/glob_consts.h"
@@ -42,6 +43,7 @@ private:
   size_t threads_amt_ = 1;
   std::string file_path_;
   std::string ip_;
+  std::atomic<size_t> packages_sent_{0};
 };
 
 #endif //SRC_CSENDER_H

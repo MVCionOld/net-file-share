@@ -10,10 +10,9 @@
 
 class CProgressBar {
 public:
+  explicit CProgressBar (size_t total);
 
-  explicit CProgressBar(size_t total);
-
-  void publish_progress(int current);
+  void PublishProgress (size_t current);
 
 private:
   size_t total_;

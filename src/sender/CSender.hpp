@@ -2,6 +2,7 @@
 #define SRC_CSENDER_H
 
 #include <algorithm>
+#include <assert.h>
 #include <atomic>
 #include <cstddef>
 #include <cstring>

@@ -24,8 +24,12 @@ enum HandshakeVal {
 };
 
 enum SendRecvParams {
-  MAX_THREADS_AMT = 1024,
-  PACKAGE_SIZE = 1024
+  MAX_THREADS_AMT = 128,
+  PACKAGE_SIZE = 4096
+};
+
+enum ProgressBarVal {
+  BUFFER_SIZE = 256
 };
 
 #endif //SRC_GLOB_CONSTS_H

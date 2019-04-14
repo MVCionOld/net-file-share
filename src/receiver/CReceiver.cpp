@@ -63,7 +63,7 @@ void CReceiver::Receive () {
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
           packages_received_++;
-          progress_bar.publish_progress(packages_received_);
+          progress_bar.PublishProgress(packages_received_);
         }
       };
 

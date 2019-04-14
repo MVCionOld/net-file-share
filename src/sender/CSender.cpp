@@ -1,6 +1,5 @@
 #include "CSender.hpp"
 
-#include <assert.h>
 
 CSender::CSender (std::string ip)
     : ip_(std::move(ip)) {}
@@ -11,10 +10,20 @@ CSender::~CSender () {
 
 void CSender::Send (std::string file_path, size_t threads_amt) {
   file_path_ = std::move(file_path);
-  threads_amt_ = threads_amt;
   const int source_fd = open_file(file_path_.c_str());
   const auto file_size = get_file_size(source_fd);
   auto source_map = map_file_r(source_fd, file_size);
+  threads_amt = std::min(
+      threads_amt,
+      static_cast<size_t>(MAX_THREADS_AMT)
+  );
+  threads_amt_ = std::min(
+      threads_amt,
+      std::max(
+          threads_amt_,
+          static_cast<size_t>(file_size / PACKAGE_SIZE)
+      )
+  );
   uint16_t port;
   makeHandshake(port);
   if (sockfd_ == FdTypeVal::ERROR_FD) {
@@ -72,7 +81,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             );
             assert(test == pkg_id);
             packages_sent_++;
-            progress_bar.publish_progress(packages_sent_);
+            progress_bar.PublishProgress(packages_sent_);
           }
         },
         thread_id);

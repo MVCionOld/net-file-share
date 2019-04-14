@@ -76,9 +76,11 @@ void CReceiver::Receive () {
   for (auto clientfd: clifds) {
     close_sockrfd(clientfd);
   }
+  close_sockrfd(clifd);
   for (auto sockfd: sockfds) {
     close_sockrfd(sockfd);
   }
+  close_sockrfd(sockfd_);
   unmap_file(dest_map, file_size);
 }
 

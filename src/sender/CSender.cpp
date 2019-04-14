@@ -77,6 +77,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   for (auto socksfd: sockfds) {
     close_socksfd(socksfd);
   }
+  close_socksfd(sockfd_);
   unmap_file(source_map, file_size);
 }
 

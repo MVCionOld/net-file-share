@@ -35,6 +35,10 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
     senders.emplace_back(
         [&] (size_t sender_id) {
           auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+          if (sender_id == threads_amt - 1) {
+            const auto last_block = file_size - block_size * sender_id;
+            pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+          }
           byte package[2 * PACKAGE_SIZE];
           for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
             auto package_size = static_cast<size_t>(PACKAGE_SIZE);

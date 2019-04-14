@@ -29,6 +29,10 @@ void CReceiver::Receive () {
   auto receiver_action =
       [block_size, dest_map, file_size, clifds] (size_t receiver_id, size_t threads_amt) {
         auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+        if (receiver_id == threads_amt - 1) {
+          const auto last_block = file_size - block_size * receiver_id;
+          pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+        }
         byte package[2 * PACKAGE_SIZE];
         for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
           auto package_size = static_cast<size_t>(PACKAGE_SIZE);

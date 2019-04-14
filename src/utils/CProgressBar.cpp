@@ -1,19 +1,12 @@
-//
-// Created by Dmytro Rodionov on 2019-04-14.
-//
+#include "CProgressBar.hpp"
 
-#include <chrono>
-#include <cstring>
-#include <cstdio>
-#include "ProgressBar.hpp"
-
-ProgressBar::ProgressBar(size_t total) : total_(total) {
+CProgressBar::CProgressBar(size_t total) : total_(total) {
   start_time_ = std::chrono::system_clock::now();
 }
 
-void ProgressBar::publish_progress(int current) {
-  char buffer[PATH_MAX];
-  char current_time[PATH_MAX];
+void CProgressBar::publish_progress(int current) {
+  char buffer[FILENAME_MAX_];
+  char current_time[FILENAME_MAX_];
   memset(buffer, 0, sizeof(buffer));
   memset(buffer, '#', (current * 100) / total_);
 

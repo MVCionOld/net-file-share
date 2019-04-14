@@ -1,6 +1,7 @@
 #ifndef SRC_CRECEIVER_H
 #define SRC_CRECEIVER_H
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -8,7 +9,7 @@
 
 
 #include "../handshake/handshake.hpp"
-#include "../utils/ProgressBar.hpp"
+#include "../utils/CProgressBar.hpp"
 
 extern "C" {
 #include "../handshake/glob_consts.h"

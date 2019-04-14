@@ -25,7 +25,8 @@ void CReceiver::Receive () {
   close_file(dest_fd);
   const auto block_size = (file_size + threads_amt_ - 1) / threads_amt_;
   std::vector<std::thread> receivers;
-  ProgressBar progress_bar((file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE);
+  const auto total_pkg_amt = (file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+  CProgressBar progress_bar(total_pkg_amt);
 
   auto receiver_action =
       [this, block_size, dest_map, file_size, &clifds, &progress_bar] (size_t receiver_id, size_t threads_amt) {
@@ -45,8 +46,6 @@ void CReceiver::Receive () {
               package_size = block_size - PACKAGE_SIZE * pkg_id;
             }
           }
-          //fprintf(stdout, "stage: %d; receiver: %d; package: %d / %d\n", 0, receiver_id, pkg_id, pkg_amt);
-          //fflush(stdout);
           read_package(
               clifds[receiver_id],
               package,
@@ -57,8 +56,6 @@ void CReceiver::Receive () {
               package,
               sizeof(size_t)
           );
-          //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
-          //fflush(stdout);
           write_mmap(
               dest_map,
               package + sizeof(size_t),
@@ -67,8 +64,6 @@ void CReceiver::Receive () {
           );
           packages_received_++;
           progress_bar.publish_progress(packages_received_);
-          //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 2, receiver_id, pkg_id);
-          //fflush(stdout);
         }
       };
 
@@ -97,7 +92,6 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
                                  std::vector<int> &clifds,
                                  std::string &file_nm, uint64_t &file_size,
                                  std::vector<std::thread> &accepters) {
-  printf("Establishing connection...\n");
   fflush(stdout);
   SendHandshakeBuff buff;
   read_package(
@@ -151,7 +145,6 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
       reinterpret_cast<void *>(&recv_buff),
       sizeof(RecvHandshakeBuff)
   );
-  printf("Connection successfully established!\n");
   fflush(stdout);
 }
 

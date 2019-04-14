@@ -32,7 +32,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
         get_ready_socksfd(ip_.c_str(), ports[thread_id])
     );
   }
-  ProgressBar progress_bar((file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE);
+  CProgressBar progress_bar((file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE);
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
     senders.emplace_back(
         [&] (size_t sender_id) {
@@ -52,8 +52,6 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
                 package_size = block_size - PACKAGE_SIZE * pkg_id;
               }
             }
-            //fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 0, sender_id, pkg_id);
-            //fflush(stdout);
             read_mmap(
                 package + sizeof(size_t),
                 source_map,
@@ -61,8 +59,6 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
                 sender_id * block_size + pkg_id * PACKAGE_SIZE
             );
             memcpy(package, &pkg_id, sizeof(size_t));
-            //fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 1, sender_id, pkg_id);
-            //fflush(stdout);
             write_package(
                 sockfds[sender_id],
                 package,
@@ -77,8 +73,6 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             assert(test == pkg_id);
             packages_sent_++;
             progress_bar.publish_progress(packages_sent_);
-            //fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 2, sender_id, pkg_id);
-            //fflush(stdout);
           }
         },
         thread_id);
@@ -162,7 +156,7 @@ void CSender::makeHandshake (uint16_t &port) {
       if (control_code[i] != receive_code[i]) {
         close_socksfd(sockfd_);
         sockfd_ = FdTypeVal::ERROR_FD;
-        continue;
+        break;
       }
     }
     return;

@@ -2,6 +2,7 @@
 #define SRC_CSENDER_H
 
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstring>
 #include <thread>
@@ -11,7 +12,7 @@
 
 
 #include "../handshake/handshake.hpp"
-#include "../utils/ProgressBar.hpp"
+#include "../utils/CProgressBar.hpp"
 
 extern "C" {
 #include "../handshake/glob_consts.h"

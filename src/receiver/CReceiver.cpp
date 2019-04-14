@@ -89,6 +89,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
                                  std::vector<int> &clifds,
                                  std::string &file_nm, uint64_t &file_size,
                                  std::vector<std::thread> &accepters) {
+  printf("Establishing connection...\n");
   SendHandshakeBuff buff;
   read_package(
       clifd,
@@ -126,7 +127,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
     activated_port_ = recv_buff.ports[port_idx];
     sockfds.emplace_back(get_ready_sockrfd(recv_buff.ports[port_idx]));
   }
-  std::mutex ports_mutex;
+
   for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
     accepters.emplace_back(
         [&] (size_t thread_idx) {
@@ -141,6 +142,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
       reinterpret_cast<void *>(&recv_buff),
       sizeof(RecvHandshakeBuff)
   );
+  printf("Connection established!\n");
 }
 
 int CReceiver::makeHandshake () {

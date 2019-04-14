@@ -42,6 +42,7 @@ private:
 private:
   int sockfd_ = ERROR_FD;
   size_t threads_amt_ = 1, activated_port_;
+  std::mutex ports_mutex;
 };
 
 #endif //SRC_CRECEIVER_H

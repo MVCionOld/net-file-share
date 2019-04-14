@@ -33,7 +33,7 @@ void CReceiver::Receive () {
           const auto last_block = file_size - block_size * receiver_id;
           pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
         }
-        byte package[2 * PACKAGE_SIZE]; // to prevent 'stack smashed' if package_size bigger
+        byte package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
         for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
           auto package_size = static_cast<size_t>(PACKAGE_SIZE);
           if (pkg_id == pkg_amt - 1) {
@@ -49,18 +49,18 @@ void CReceiver::Receive () {
           read_package(
               clifds[receiver_id],
               package,
-              package_size
+              package_size + sizeof(size_t)
           );
           write_package(
-                  clifds[receiver_id],
-                  package,
-                  package_size
+              clifds[receiver_id],
+              package,
+              sizeof(size_t)
           );
           //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
           //fflush(stdout);
           write_mmap(
               dest_map,
-              package,
+              package + sizeof(size_t),
               package_size,
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
@@ -138,7 +138,9 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
     accepters.emplace_back(
         [&] (size_t thread_idx) {
           std::lock_guard<std::mutex> lock(ports_mutex);
+          printf("Accepting\n");
           clifds.emplace_back(accept_clientfd(sockfds[thread_idx]));
+          printf("Accepted: %d\n", clifds[clifds.size() - 1]);
         },
         port_idx
     );

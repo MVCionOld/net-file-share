@@ -39,8 +39,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             const auto last_block = file_size - block_size * sender_id;
             pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
           }
-          byte package[2 * PACKAGE_SIZE]; // to prevent 'stack smashed' if package_size bigger
-          byte package_test[2 * PACKAGE_SIZE];
+          byte package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
           for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
             auto package_size = static_cast<size_t>(PACKAGE_SIZE);
             if (pkg_id == pkg_amt - 1) {
@@ -54,26 +53,26 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 0, sender_id, pkg_id);
             fflush(stdout);
             read_mmap(
-                package,
+                package + sizeof(size_t),
                 source_map,
                 package_size,
                 sender_id * block_size + pkg_id * PACKAGE_SIZE
             );
+            memset(package, pkg_id, sizeof(size_t));
             fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 1, sender_id, pkg_id);
             fflush(stdout);
             write_package(
                 sockfds[sender_id],
                 package,
-                package_size
+                package_size + sizeof(size_t)
             );
+            size_t test;
             read_package(
                 sockfds[sender_id],
-                package_test,
-                package_size
+                &test,
+                sizeof(size_t)
             );
-            for (int i = 0; i < package_size; i++) {
-              assert(package_test[i] == package[i]);
-            }
+            assert(test == pkg_id);
             fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 2, sender_id, pkg_id);
             fflush(stdout);
           }

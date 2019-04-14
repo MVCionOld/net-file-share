@@ -40,6 +40,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
           }
           byte package[2 * PACKAGE_SIZE]; // to prevent 'stack smashed' if package_size bigger
+          byte package_test[2 * PACKAGE_SIZE];
           for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
             auto package_size = static_cast<size_t>(PACKAGE_SIZE);
             if (pkg_id == pkg_amt - 1) {
@@ -65,6 +66,14 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
                 package,
                 package_size
             );
+            read_package(
+                sockfds[sender_id],
+                package_test,
+                package_size
+            );
+            for (int i = 0; i < package_size; i++) {
+              assert(package_test[i] == package[i]);
+            }
             fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 2, sender_id, pkg_id);
             fflush(stdout);
           }

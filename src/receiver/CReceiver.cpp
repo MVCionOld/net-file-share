@@ -51,6 +51,11 @@ void CReceiver::Receive () {
               package,
               package_size
           );
+          write_package(
+                  clifds[receiver_id],
+                  package,
+                  package_size
+          );
           //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
           //fflush(stdout);
           write_mmap(

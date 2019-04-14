@@ -2,11 +2,10 @@
 
 
 int
-get_ready_socksfd(const char *ip, uint16_t port) {
+get_ready_socksfd (const char *ip, uint16_t port) {
   SOCKET sockfd = INVALID_SOCKET;
   struct addrinfo *result = NULL;
-  struct addrinfo *ptr = NULL,
-  struct addrinfo	hints;
+  struct addrinfo hints;
   ZeroMemory(&hints, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -18,35 +17,36 @@ get_ready_socksfd(const char *ip, uint16_t port) {
       ip,
       port_buf,
       &hints,
-      &result
+      &addrs
   );
   if (errcode != 0) {
     return ERROR_FD;
   }
   sockfd = socket(
-      ptr->ai_family,
-      ptr->ai_socktype,
-      ptr->ai_protocol
+      addrs->ai_family,
+      addrs->ai_socktype,
+      addrs->ai_protocol
   );
   if (sockfd == INVALID_SOCKET) {
-    freeaddrinfo(result);
+    freeaddrinfo(addrs);
     return ERROR_FD;
   }
   errcode = connect(
       sockfd,
-      ptr->ai_addr,
-      (int)ptr->ai_addrlen
+      addrs->ai_addr,
+      (int) addrs->ai_addrlen
   );
   if (errcode == SOCKET_ERROR) {
     closesocket(sockfd);
-    freeaddrinfo(result);
+    freeaddrinfo(addrs);
     return ERROR_FD;
   }
+  freeaddrinfo(addrs);
   return sockfd;
 }
 
 void
-close_socksfd(int fd) {
-  closesocket((SOCKET)fd);
+close_socksfd (int fd) {
+  closesocket((SOCKET) fd);
 }
 

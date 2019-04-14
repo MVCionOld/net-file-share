@@ -10,6 +10,11 @@
 #include <ws2tcpip.h>
 
 
+enum {
+  ERROR_FD = -1
+};
+
+
 extern uint16_t
 choose_available_port(uint16_t from, uint16_t to);
 

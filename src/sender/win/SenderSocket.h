@@ -10,6 +10,11 @@
 #include <ws2tcpip.h>
 
 
+enum {
+  ERROR_FD = -1
+};
+
+
 extern int
 get_ready_socksfd(const char *ip, uint16_t port);
 

@@ -17,7 +17,7 @@ void CReceiver::Receive () {
   int clifd = makeHandshake();
   std::string file_nm;
   uint64_t file_size;
-  std::vector<int> sockfds = {sockfd_}, clifds = {clifd};
+  std::vector<int> sockfds, clifds;
   std::vector<std::thread> accepters;
   setUpConnection(clifd, sockfds, clifds, file_nm, file_size, accepters);
   int dest_fd = prepareFile(file_nm, file_size);
@@ -116,8 +116,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
   file_nm = std::move(std::string(buff.buffer + file_nm_off));
   RecvHandshakeBuff recv_buff{};
   recv_buff.ports_amt = threads_amt_;
-  recv_buff.ports[0] = activated_port_;
-  for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
+  for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
     recv_buff.ports[port_idx] = choose_available_port(
         ++activated_port_,
         PortRange::TO
@@ -126,7 +125,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
     sockfds.emplace_back(get_ready_sockrfd(recv_buff.ports[port_idx]));
   }
   std::mutex ports_mutex;
-  for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
+  for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
     accepters.emplace_back(
         [&] (size_t thread_idx) {
           std::lock_guard<std::mutex> lock(ports_mutex);

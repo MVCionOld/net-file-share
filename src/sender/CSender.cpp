@@ -1,5 +1,6 @@
 #include "CSender.hpp"
 
+#include <assert.h>
 
 CSender::CSender (std::string ip)
     : ip_(std::move(ip)) {}

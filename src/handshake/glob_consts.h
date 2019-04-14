@@ -25,7 +25,7 @@ enum HandshakeVal {
 
 enum SendRecvParams {
   MAX_THREADS_AMT = 128,
-  PACKAGE_SIZE = 4096
+  PACKAGE_SIZE = 1024
 };
 
 enum ProgressBarVal {

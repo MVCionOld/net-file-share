@@ -22,4 +22,5 @@ void CProgressBar::publish_progress(int current) {
   );
 
   printf("[%-100s] (%d%%) (%d/%d) (Time spent: %s)\r", buffer, (current * 100) / total_, current, total_, current_time);
+  fflush(stdout);
 }

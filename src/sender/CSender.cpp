@@ -20,8 +20,8 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
     unmap_file(source_map, file_size);
     return;
   }
-  std::vector<uint16_t> ports = {port};
-  std::vector<int> sockfds = {sockfd_};
+  std::vector<uint16_t> ports;
+  std::vector<int> sockfds;
   setUpConnection(source_fd, ports);
   close_file(source_fd);
   std::vector<std::thread> senders;
@@ -121,7 +121,7 @@ void CSender::setUpConnection (int fd, std::vector<uint16_t> &ports) {
       sizeof(RecvHandshakeBuff)
   );
   threads_amt_ = recv_buff.ports_amt; // if receiver hasn't enough ports
-  for (size_t port_idx = 1; port_idx < threads_amt_; ++port_idx) {
+  for (size_t port_idx = 0; port_idx < threads_amt_; ++port_idx) {
     ports.emplace_back(recv_buff.ports[port_idx]);
   }
 }

@@ -90,6 +90,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
                                  std::string &file_nm, uint64_t &file_size,
                                  std::vector<std::thread> &accepters) {
   printf("Establishing connection...\n");
+  fflush(stdout);
   SendHandshakeBuff buff;
   read_package(
       clifd,
@@ -143,6 +144,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
       sizeof(RecvHandshakeBuff)
   );
   printf("Connection established!\n");
+  fflush(stdout);
 }
 
 int CReceiver::makeHandshake () {

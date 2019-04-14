@@ -91,7 +91,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
   read_package(
       clifd,
       reinterpret_cast<void *>(buff.buffer),
-      HandshakeVal::HANDSHAKE_SIZE
+      sizeof(SendHandshakeBuff)
   );
   /*
     Handshake
@@ -138,7 +138,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
   write_package(
       clifd,
       reinterpret_cast<void *>(&recv_buff),
-      sizeof(recv_buff)
+      sizeof(RecvHandshakeBuff)
   );
 }
 

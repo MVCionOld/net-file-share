@@ -2,14 +2,15 @@
 
 
 uint16_t
-choose_available_port(uint16_t from, uint16_t to) {
+choose_available_port (uint16_t from, uint16_t to) {
   for (uint16_t port = from; port < to; ++port) {
     const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
       return 0;
     }
     int optval = 1;
-    const socklen_t optlen = (socklen_t)sizeof(optval);
+    const socklen_t optlen = (socklen_t)
+        sizeof(optval);
     setsockopt(
         sockfd,
         SOL_SOCKET,
@@ -47,7 +48,7 @@ choose_available_port(uint16_t from, uint16_t to) {
 }
 
 int
-get_ready_sockrfd(uint16_t port) {
+get_ready_sockrfd (uint16_t port) {
   SOCKET sockfd = INVALID_SOCKET;
   struct addrinfo *result = NULL;
   struct addrinfo hints;
@@ -78,7 +79,8 @@ get_ready_sockrfd(uint16_t port) {
     return ERROR_FD;
   }
   int optval = 1;
-  const socklen_t optlen = (socklen_t)sizeof(optval);
+  const socklen_t optlen = (socklen_t)
+  sizeof(optval);
   setsockopt(
       sockfd,
       SOL_SOCKET,
@@ -96,7 +98,7 @@ get_ready_sockrfd(uint16_t port) {
   errcode = bind(
       sockfd,
       result->ai_addr,
-      (int)result->ai_addrlen
+      (int) result->ai_addrlen
   );
   if (errcode == SOCKET_ERROR) {
     freeaddrinfo(result);
@@ -113,21 +115,21 @@ get_ready_sockrfd(uint16_t port) {
 }
 
 int
-accept_clientfd(int sockfd) {
+accept_clientfd (int sockfd) {
   struct sockaddr_in client_sock;
   socklen_t socklen = sizeof(client_sock);
   SOCKET clifd = accept(
-      (SOCKET)sockfd,
+      (SOCKET) sockfd,
       (struct sockaddr *) &client_sock,
       &socklen
   );
   if (clifd == INVALID_SOCKET) {
     return ERROR_FD;
   }
-  return (int)clifd;
+  return (int) clifd;
 }
 
 void
-close_sockrfd(int fd) {
-  closesocket((SOCKET)fd);
+close_sockrfd (int fd) {
+  closesocket((SOCKET) fd);
 }

@@ -44,15 +44,15 @@ void CReceiver::Receive () {
               package_size = block_size - PACKAGE_SIZE * pkg_id;
             }
           }
-          fprintf(stdout, "stage: %d; receiver: %d; package: %d / %d\n", 0, receiver_id, pkg_id, pkg_amt);
-          fflush(stdout);
+          //fprintf(stdout, "stage: %d; receiver: %d; package: %d / %d\n", 0, receiver_id, pkg_id, pkg_amt);
+          //fflush(stdout);
           read_package(
               clifds[receiver_id],
               package,
               package_size
           );
-          fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
-          fflush(stdout);
+          //fprintf(stdout, "stage: %d; receiver: %d; package: %d\n", 1, receiver_id, pkg_id);
+          //fflush(stdout);
           write_mmap(
               dest_map,
               package,

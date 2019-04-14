@@ -19,7 +19,8 @@ enum PortRange {
 
 enum HandshakeVal {
   CONTROL_CODE_SIZE = 64,
-  HANDSHAKE_SIZE = FILENAME_MAX + sizeof(uint64_t) + sizeof(size_t)
+  FILENAME_MAX_= 4096,
+  HANDSHAKE_SIZE = FILENAME_MAX_ + sizeof(uint64_t) + sizeof(size_t)
 };
 
 enum SendRecvParams {

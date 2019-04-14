@@ -106,7 +106,7 @@ void CSender::setUpConnection (int fd, std::vector<uint16_t> &ports) {
   get_file_name(
       file_path_.c_str(),
       send_buff.buffer + file_nm_off,
-      FILENAME_MAX
+      FILENAME_MAX_
   );
   write_package(
       sockfd_,

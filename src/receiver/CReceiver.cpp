@@ -23,7 +23,7 @@ void CReceiver::Receive () {
   int dest_fd = prepareFile(file_nm, file_size);
   auto dest_map = map_file_w(dest_fd, file_size);
   close_file(dest_fd);
-  const auto block_size = file_size / threads_amt_;
+  const auto block_size = (file_size + threads_amt_ - 1) / threads_amt_;
   std::vector<std::thread> receivers;
 
   auto receiver_action =

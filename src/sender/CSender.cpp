@@ -25,7 +25,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   setUpConnection(source_fd, ports);
   close_file(source_fd);
   std::vector<std::thread> senders;
-  const auto block_size = file_size / threads_amt_;
+  const auto block_size = (file_size + threads_amt_ - 1) / threads_amt_;
   for (size_t thread_id = 1; thread_id < threads_amt_; ++thread_id) {
     sockfds.emplace_back(
         get_ready_socksfd(ip_.c_str(), ports[thread_id])

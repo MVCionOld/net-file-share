@@ -4,7 +4,7 @@
 int
 create_file (const char *path) {
   const int flags = O_CREAT | O_RDWR | O_TRUNC
-                    #ifndef __APPLE__
+#ifndef __APPLE__
                     | O_LARGEFILE
 #endif
   ;
@@ -14,7 +14,7 @@ create_file (const char *path) {
 int
 open_file (const char *path) {
   const int flags = O_RDONLY
-                    #ifndef __APPLE__
+#ifndef __APPLE__
                     | O_LARGEFILE
 #endif
   ;

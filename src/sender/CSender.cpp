@@ -143,7 +143,7 @@ void CSender::makeHandshake (uint16_t &port) {
     read_package(sockfd_, receive_code, cntl_size);
     for (size_t i = 0; i < cntl_size; ++i) {
       if (control_code[i] != receive_code[i]) {
-        close(sockfd_);
+        close_socksfd(sockfd_);
         sockfd_ = FdTypeVal::ERROR_FD;
         continue;
       }

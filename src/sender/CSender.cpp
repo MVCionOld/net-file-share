@@ -59,7 +59,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
                 package_size,
                 sender_id * block_size + pkg_id * PACKAGE_SIZE
             );
-            memset(package, pkg_id, sizeof(size_t));
+            memcpy(package, &pkg_id, sizeof(size_t));
             fprintf(stdout, "stage: %d; sender: %d; package: %d\n", 1, sender_id, pkg_id);
             fflush(stdout);
             write_package(

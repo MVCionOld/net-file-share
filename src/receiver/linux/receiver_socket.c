@@ -1,11 +1,6 @@
 #include "receiver_socket.h"
 
 
-enum {
-  MESSAGE_QUEUE_SIZE = SOMAXCONN
-};
-
-
 uint16_t
 choose_available_port (uint16_t from, uint16_t to) {
   for (uint16_t port = from; port < to; ++port) {
@@ -94,7 +89,7 @@ get_ready_sockrfd (uint16_t port) {
     perror("bind");
     return ERROR_FD;
   }
-  listen(sockfd, MESSAGE_QUEUE_SIZE);
+  listen(sockfd, SOMAXCONN);
   return sockfd;
 }
 

@@ -1,6 +1,7 @@
 #ifndef SRC_RECEIVERSOCKET_H
 #define SRC_RECEIVERSOCKET_H
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

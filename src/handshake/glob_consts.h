@@ -24,7 +24,7 @@ enum HandshakeVal {
 };
 
 enum SendRecvParams {
-  MAX_THREADS_AMT = 12,
+  MAX_THREADS_AMT = 1024,
   PACKAGE_SIZE = 1024
 };
 

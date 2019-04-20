@@ -16,9 +16,9 @@ int main (int argc, char *argv[]) {
   }
 #endif
 
-  CApplication app;
+  CApplication application;
   try {
-    app(argc, argv);
+    application(argc, argv);
   }
   catch (std::exception &exception) {
     std::cout << "Error.\n" << exception.what();

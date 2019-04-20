@@ -23,6 +23,8 @@ if (UNIX)
             file_lib/linux/file_lib.h
             utils/CProgressBar.cpp
             utils/CProgressBar.hpp
+            application/CApplication.cpp
+            application/CApplication.hpp
     )
     target_link_libraries(src ${CMAKE_DL_LIBS})
     target_link_libraries(src pthread)
@@ -48,6 +50,7 @@ if (WIN32)
             file_lib/win/FileLib.h
             utils/CProgressBar.cpp
             utils/CProgressBar.hpp
+            application/CApplication.cpp application/CApplication.hpp
     )
     target_link_libraries(src ${CMAKE_DL_LIBS})
     target_link_libraries(src pthread)

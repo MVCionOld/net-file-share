@@ -77,7 +77,7 @@ write_mmap (void *dst, void *src, uint32_t length, uint64_t offset) {
 void
 get_file_name (const char *path, char *filename, uint32_t length) {
   memcpy(filename, path, length);
-  PathStripPath((TCHAR *) filename);
+  PathStripPathA((TCHAR *) filename);
 }
 
 uint64_t

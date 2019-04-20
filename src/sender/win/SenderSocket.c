@@ -3,8 +3,8 @@
 
 int
 get_ready_socksfd (const char *ip, uint16_t port) {
-  SOCKET sockfd = INVALID_SOCKET;
-  struct addrinfo *result = NULL;
+  SOCKET sockfd;
+  struct addrinfo *addrs = NULL;
   struct addrinfo hints;
   ZeroMemory(&hints, sizeof(hints));
   hints.ai_family = AF_UNSPEC;

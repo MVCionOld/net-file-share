@@ -54,5 +54,11 @@ if (WIN32)
     )
     target_link_libraries(src ${CMAKE_DL_LIBS})
     target_link_libraries(src pthread)
-    target_link_libraries(src wsock32 ws2_32 shlwapi)
+    target_link_libraries(
+            src
+            wsock32
+            ws2_32
+            shlwapi
+            advapi32
+    )
 endif (WIN32)

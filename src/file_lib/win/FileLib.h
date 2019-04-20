@@ -13,9 +13,6 @@
 #include <winsock2.h>
 
 
-typedef char byte;
-
-
 extern int
 create_file (const char *path);
 

@@ -50,7 +50,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
             const auto last_block = file_size - block_size * sender_id;
             pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
           }
-          byte package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
+          char package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
           for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
             auto package_size = static_cast<size_t>(PACKAGE_SIZE);
             if (pkg_id == pkg_amt - 1) {
@@ -110,13 +110,13 @@ void CSender::setUpConnection (int fd, std::vector<uint16_t> &ports) {
   SendHandshakeBuff send_buff;
   parse(
       send_buff.buffer,
-      reinterpret_cast<byte *>(&threads_amt_),
+      reinterpret_cast<char *>(&threads_amt_),
       sizeof(threads_amt_)
   );
   auto file_size = get_file_size(fd);
   parse(
       send_buff.buffer + file_size_off,
-      reinterpret_cast<byte *>(&file_size),
+      reinterpret_cast<char *>(&file_size),
       sizeof(file_size)
   );
   get_file_name(
@@ -149,17 +149,17 @@ void CSender::makeHandshake (uint16_t &port) {
       continue;
     }
     constexpr size_t cntl_size = HandshakeVal::CONTROL_CODE_SIZE;
-    byte control_code[cntl_size] = {0};
+    char control_code[cntl_size] = {0};
     std::mt19937 generator{std::random_device{}()};
     std::uniform_int_distribution<int> distribution{-128, 127};
     std::generate(
         control_code,
         control_code + cntl_size,
         [&distribution, &generator] () {
-          return static_cast<byte>(distribution(generator));
+          return static_cast<char>(distribution(generator));
         });
     write_package(sockfd_, control_code, cntl_size);
-    byte receive_code[cntl_size] = {0};
+    char receive_code[cntl_size] = {0};
     read_package(sockfd_, receive_code, cntl_size);
     for (size_t i = 0; i < cntl_size; ++i) {
       if (control_code[i] != receive_code[i]) {

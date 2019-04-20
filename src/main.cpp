@@ -8,7 +8,7 @@ int main (int argc, char *argv[]) {
   if (WSAStartup(MAKEWORD(2,2), &wsa_data) != 0) {
     std::cout << "Cannot link "
     << "\"ws2_32.lib\", "
-    << "\"mswsock.lib\", or "
+    << "\"mswsock.lib\" or "
     << "\"advapi32.lib\".\n"
     << "Try to link them and restart.\n"
     << "Terminating...";

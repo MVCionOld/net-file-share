@@ -4,9 +4,6 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#ifdef UNIX
-typedef char byte;
-#endif
 
 enum FdTypeVal {
   ERROR_FD = -1,

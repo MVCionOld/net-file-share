@@ -1,7 +1,9 @@
 #ifndef SRC_CFILEINFO_H
 #define SRC_CFILEINFO_H
 
+#ifdef UNIX
 #include <glob.h>
+#endif
 
 #include "glob_consts.h"
 

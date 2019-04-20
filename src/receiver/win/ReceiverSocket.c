@@ -3,7 +3,8 @@
 
 uint16_t
 choose_available_port (uint16_t from, uint16_t to) {
-  for (uint16_t port = from; port < to; ++port) {
+  uint16_t port = from;
+  for (; port < to; ++port) {
     const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
       return 0;

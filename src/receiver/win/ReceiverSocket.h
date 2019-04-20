@@ -9,10 +9,7 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 
-
-enum {
-  ERROR_FD = -1
-};
+#include "../../handshake/glob_consts.h"
 
 
 extern uint16_t

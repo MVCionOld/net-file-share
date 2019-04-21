@@ -37,8 +37,11 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   const auto total_pkg_amt = (file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
   CProgressBar progress_bar(total_pkg_amt);
   std::thread publisher([&] () {
-      while (packages_sent_ < total_pkg_amt) {
+      while (packages_sent_ <= total_pkg_amt) {
         progress_bar.PublishProgress(packages_sent_);
+        if (packages_sent_ >= total_pkg_amt) {
+          return;
+        }
         std::this_thread::sleep_for(std::chrono::seconds(1));
       }
   });

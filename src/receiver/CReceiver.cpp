@@ -73,8 +73,11 @@ void CReceiver::Receive () {
     receivers.emplace_back(receiver_action, thread_id, threads_amt_);
   }
   std::thread publisher([&] () {
-      while (packages_received_ < total_pkg_amt) {
+      while (packages_received_ <= total_pkg_amt) {
         progress_bar.PublishProgress(packages_received_);
+        if (packages_received_ >= total_pkg_amt) {
+          return;
+        }
         std::this_thread::sleep_for(std::chrono::seconds(1));
       }
   });

@@ -13,16 +13,9 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   const int source_fd = open_file(file_path_.c_str());
   const auto file_size = get_file_size(source_fd);
   auto source_map = map_file_r(source_fd, file_size);
-  threads_amt = std::min(
-      threads_amt,
-      static_cast<size_t>(MAX_THREADS_AMT)
-  );
   threads_amt_ = std::min(
-      threads_amt,
-      std::max(
-          threads_amt_,
-          static_cast<size_t>(file_size / PACKAGE_SIZE)
-      )
+      std::max(static_cast<size_t>(1), threads_amt),
+      static_cast<size_t>(MAX_THREADS_AMT)
   );
   uint16_t port;
   makeHandshake(port);

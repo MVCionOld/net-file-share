@@ -19,15 +19,11 @@ void CProgressBar::PublishProgress (size_t current) {
       (time / 60) % 60,
       time % 60
   );
-#ifndef UNIX
+#ifdef WIN32
   system("cls");
 #endif
   printf(
-#ifdef UNIX
       "[%-100s] (%lu%%) (%lu/%lu) (Time spent: %s)\r\n",
-#else
-      "[%-100s] (%lu%%) (%lu/%lu) (Time spent: %s)\n",
-#endif
       buffer,
       (current * 100) / total_,
       current, total_,

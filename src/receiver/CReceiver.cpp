@@ -62,8 +62,7 @@ void CReceiver::Receive () {
               package_size,
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
-          packages_received_++;
-          progress_bar.PublishProgress(packages_received_);
+          ++packages_received_;
         }
       };
 
@@ -73,9 +72,16 @@ void CReceiver::Receive () {
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
     receivers.emplace_back(receiver_action, thread_id, threads_amt_);
   }
+  std::thread publisher([&] () {
+      while (packages_received_ < total_pkg_amt) {
+        progress_bar.PublishProgress(packages_received_);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+  });
   for (auto &receiver: receivers) {
     receiver.join();
   }
+  publisher.join();
   for (auto clientfd: clifds) {
     close_sockrfd(clientfd);
   }

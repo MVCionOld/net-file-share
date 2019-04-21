@@ -1,4 +1,3 @@
-#include <process.h>
 #include "CProgressBar.hpp"
 
 

@@ -13,16 +13,9 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   const int source_fd = open_file(file_path_.c_str());
   const auto file_size = get_file_size(source_fd);
   auto source_map = map_file_r(source_fd, file_size);
-  threads_amt = std::min(
-      threads_amt,
-      static_cast<size_t>(MAX_THREADS_AMT)
-  );
   threads_amt_ = std::min(
-      threads_amt,
-      std::max(
-          threads_amt_,
-          static_cast<size_t>(file_size / PACKAGE_SIZE)
-      )
+      std::max(static_cast<size_t>(1), threads_amt),
+      static_cast<size_t>(MAX_THREADS_AMT)
   );
   uint16_t port;
   makeHandshake(port);
@@ -41,54 +34,65 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
         get_ready_socksfd(ip_.c_str(), ports[thread_id])
     );
   }
-  CProgressBar progress_bar((file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE);
+  const auto total_pkg_amt = (file_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+  CProgressBar progress_bar(total_pkg_amt);
+  std::thread publisher([&] () {
+      while (packages_sent_ <= total_pkg_amt) {
+        progress_bar.PublishProgress(packages_sent_);
+        if (packages_sent_ >= total_pkg_amt) {
+          return;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+  });
+
+  auto sender_action = [&] (size_t sender_id) {
+      auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+      if (sender_id == threads_amt - 1) {
+        const auto last_block = file_size - block_size * sender_id;
+        pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
+      }
+      char package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
+      for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
+        auto package_size = static_cast<size_t>(PACKAGE_SIZE);
+        if (pkg_id == pkg_amt - 1) {
+          if (sender_id == threads_amt_ - 1) {
+            package_size = file_size - block_size * sender_id
+                           - PACKAGE_SIZE * pkg_id;
+          } else {
+            package_size = block_size - PACKAGE_SIZE * pkg_id;
+          }
+        }
+        read_mmap(
+            package + sizeof(size_t),
+            source_map,
+            package_size,
+            sender_id * block_size + pkg_id * PACKAGE_SIZE
+        );
+        memcpy(package, &pkg_id, sizeof(size_t));
+        write_package(
+            sockfds[sender_id],
+            package,
+            package_size + sizeof(size_t)
+        );
+        size_t test;
+        read_package(
+            sockfds[sender_id],
+            &test,
+            sizeof(size_t)
+        );
+        assert(test == pkg_id);
+        ++packages_sent_;
+      }
+  };
+
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
-    senders.emplace_back(
-        [&] (size_t sender_id) {
-          auto pkg_amt = (block_size + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
-          if (sender_id == threads_amt - 1) {
-            const auto last_block = file_size - block_size * sender_id;
-            pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
-          }
-          byte package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
-          for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
-            auto package_size = static_cast<size_t>(PACKAGE_SIZE);
-            if (pkg_id == pkg_amt - 1) {
-              if (sender_id == threads_amt_ - 1) {
-                package_size = file_size - block_size * sender_id
-                               - PACKAGE_SIZE * pkg_id;
-              } else {
-                package_size = block_size - PACKAGE_SIZE * pkg_id;
-              }
-            }
-            read_mmap(
-                package + sizeof(size_t),
-                source_map,
-                package_size,
-                sender_id * block_size + pkg_id * PACKAGE_SIZE
-            );
-            memcpy(package, &pkg_id, sizeof(size_t));
-            write_package(
-                sockfds[sender_id],
-                package,
-                package_size + sizeof(size_t)
-            );
-            size_t test;
-            read_package(
-                sockfds[sender_id],
-                &test,
-                sizeof(size_t)
-            );
-            assert(test == pkg_id);
-            packages_sent_++;
-            progress_bar.PublishProgress(packages_sent_);
-          }
-        },
-        thread_id);
+    senders.emplace_back(sender_action, thread_id);
   }
   for (auto &sender: senders) {
     sender.join();
   }
+  publisher.join();
   for (auto socksfd: sockfds) {
     close_socksfd(socksfd);
   }
@@ -110,13 +114,13 @@ void CSender::setUpConnection (int fd, std::vector<uint16_t> &ports) {
   SendHandshakeBuff send_buff;
   parse(
       send_buff.buffer,
-      reinterpret_cast<byte *>(&threads_amt_),
+      reinterpret_cast<char *>(&threads_amt_),
       sizeof(threads_amt_)
   );
   auto file_size = get_file_size(fd);
   parse(
       send_buff.buffer + file_size_off,
-      reinterpret_cast<byte *>(&file_size),
+      reinterpret_cast<char *>(&file_size),
       sizeof(file_size)
   );
   get_file_name(
@@ -149,17 +153,17 @@ void CSender::makeHandshake (uint16_t &port) {
       continue;
     }
     constexpr size_t cntl_size = HandshakeVal::CONTROL_CODE_SIZE;
-    byte control_code[cntl_size] = {0};
+    char control_code[cntl_size] = {0};
     std::mt19937 generator{std::random_device{}()};
     std::uniform_int_distribution<int> distribution{-128, 127};
     std::generate(
         control_code,
         control_code + cntl_size,
         [&distribution, &generator] () {
-          return static_cast<byte>(distribution(generator));
+          return static_cast<char>(distribution(generator));
         });
     write_package(sockfd_, control_code, cntl_size);
-    byte receive_code[cntl_size] = {0};
+    char receive_code[cntl_size] = {0};
     read_package(sockfd_, receive_code, cntl_size);
     for (size_t i = 0; i < cntl_size; ++i) {
       if (control_code[i] != receive_code[i]) {

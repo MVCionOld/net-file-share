@@ -5,8 +5,6 @@
 #include <inttypes.h>
 
 
-typedef char byte;
-
 enum FdTypeVal {
   ERROR_FD = -1,
   OPEN_MODE = 0660

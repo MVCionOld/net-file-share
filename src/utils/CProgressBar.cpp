@@ -14,13 +14,17 @@ void CProgressBar::PublishProgress (size_t current) {
   char current_time[ProgressBarVal::BUFFER_SIZE];
   sprintf(
       current_time,
-      "%02d:%02d:%02d",
+      "%02lu:%02lu:%02lu",
       time / 3600,
       (time / 60) % 60,
       time % 60
   );
   printf(
-      "[%-100s] (%d%%) (%d/%d) (Time spent: %s)\r",
+#ifdef WIN32
+      "[%-100s] (%lu%%) (%lu/%lu) (Time spent: %s)\r\n",
+#else
+      "[%-100s] (%lu%%) (%lu/%lu) (Time spent: %s)\r",
+#endif
       buffer,
       (current * 100) / total_,
       current, total_,

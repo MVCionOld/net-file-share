@@ -5,14 +5,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <ws2tcpip.h>
 
-
-enum {
-  ERROR_FD = -1
-};
+#include "../../handshake/glob_consts.h"
 
 
 extern int

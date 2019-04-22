@@ -3,7 +3,8 @@
 
 uint16_t
 choose_available_port (uint16_t from, uint16_t to) {
-  for (uint16_t port = from; port < to; ++port) {
+  uint16_t port = from;
+  for (; port < to; ++port) {
     const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
       return 0;
@@ -15,14 +16,14 @@ choose_available_port (uint16_t from, uint16_t to) {
         sockfd,
         SOL_SOCKET,
         SO_REUSEADDR,
-        &optval,
+        (const char*)&optval,
         optlen
     );
     setsockopt(
         sockfd,
         SOL_SOCKET,
-        SO_REUSEPORT,
-        &optval,
+        SO_KEEPALIVE,
+        (const char*)&optval,
         optlen
     );
     struct sockaddr_in server_socket = {
@@ -49,7 +50,7 @@ choose_available_port (uint16_t from, uint16_t to) {
 
 int
 get_ready_sockrfd (uint16_t port) {
-  SOCKET sockfd = INVALID_SOCKET;
+  SOCKET sockfd;
   struct addrinfo *result = NULL;
   struct addrinfo hints;
   ZeroMemory(&hints, sizeof(hints));
@@ -85,14 +86,14 @@ get_ready_sockrfd (uint16_t port) {
       sockfd,
       SOL_SOCKET,
       SO_REUSEADDR,
-      &optval,
+      (const char*)&optval,
       optlen
   );
   setsockopt(
       sockfd,
       SOL_SOCKET,
-      SO_REUSEPORT,
-      &optval,
+      SO_KEEPALIVE,
+      (const char*)&optval,
       optlen
   );
   errcode = bind(

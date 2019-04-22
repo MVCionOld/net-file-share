@@ -56,28 +56,28 @@ close_file (int fd) {
 
 int
 read_package (int fd, void *buf, uint32_t count) {
-  return recv((SOCKET) fd, (byte *) buf, count, 0);
+  return recv((SOCKET) fd, (char *) buf, count, 0);
 }
 
 int
 write_package (int fd, const void *buf, uint32_t count) {
-  return send((SOCKET) fd, (const byte *) buf, count, 0);
+  return send((SOCKET) fd, (const char *) buf, count, 0);
 }
 
 void
 read_mmap (void *dst, void *src, uint32_t length, uint64_t offset) {
-  memcpy(dst, (byte *) src + offset, length);
+  memcpy(dst, (char *) src + offset, length);
 }
 
 void
 write_mmap (void *dst, void *src, uint32_t length, uint64_t offset) {
-  memcpy((byte *) dst + offset, src, length);
+  memcpy((char *) dst + offset, src, length);
 }
 
 void
 get_file_name (const char *path, char *filename, uint32_t length) {
   memcpy(filename, path, length);
-  PathStripPath((TCHAR *) filename);
+  PathStripPathA((TCHAR *) filename);
 }
 
 uint64_t

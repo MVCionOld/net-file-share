@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <zconf.h>
 #include <sys/socket.h>
 #include <sys/unistd.h>
 

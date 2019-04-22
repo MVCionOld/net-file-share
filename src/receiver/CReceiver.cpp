@@ -35,7 +35,7 @@ void CReceiver::Receive () {
           const auto last_block = file_size - block_size * receiver_id;
           pkg_amt = (last_block + PACKAGE_SIZE - 1) / PACKAGE_SIZE;
         }
-        byte package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
+        char package[2 * PACKAGE_SIZE + sizeof(size_t)]; // to prevent 'stack smashed' if package_size bigger
         for (size_t pkg_id = 0; pkg_id < pkg_amt; ++pkg_id) {
           auto package_size = static_cast<size_t>(PACKAGE_SIZE);
           if (pkg_id == pkg_amt - 1) {
@@ -62,8 +62,7 @@ void CReceiver::Receive () {
               package_size,
               receiver_id * block_size + pkg_id * PACKAGE_SIZE
           );
-          packages_received_++;
-          progress_bar.PublishProgress(packages_received_);
+          ++packages_received_;
         }
       };
 
@@ -73,9 +72,19 @@ void CReceiver::Receive () {
   for (size_t thread_id = 0; thread_id < threads_amt_; ++thread_id) {
     receivers.emplace_back(receiver_action, thread_id, threads_amt_);
   }
+  std::thread publisher([&] () {
+      while (packages_received_ <= total_pkg_amt) {
+        progress_bar.PublishProgress(packages_received_);
+        if (packages_received_ >= total_pkg_amt) {
+          return;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+  });
   for (auto &receiver: receivers) {
     receiver.join();
   }
+  publisher.join();
   for (auto clientfd: clifds) {
     close_sockrfd(clientfd);
   }
@@ -110,12 +119,12 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
   const size_t file_size_off = sizeof(size_t);
   const size_t file_nm_off = sizeof(size_t) + sizeof(uint64_t);
   parse(
-      reinterpret_cast<byte *>(&threads_amt_),
+      reinterpret_cast<char *>(&threads_amt_),
       buff.buffer,
       sizeof(threads_amt_)
   );
   parse(
-      reinterpret_cast<byte *>(&file_size),
+      reinterpret_cast<char *>(&file_size),
       buff.buffer + file_size_off,
       sizeof(file_size)
   );
@@ -150,7 +159,7 @@ void CReceiver::setUpConnection (int clifd, std::vector<int> &sockfds,
 
 int CReceiver::makeHandshake () {
   int clifd = accept_clientfd(sockfd_);
-  byte control_code[HandshakeVal::CONTROL_CODE_SIZE];
+  char control_code[HandshakeVal::CONTROL_CODE_SIZE];
   read_package(clifd, control_code, HandshakeVal::CONTROL_CODE_SIZE);
   write_package(clifd, control_code, HandshakeVal::CONTROL_CODE_SIZE);
   return clifd;

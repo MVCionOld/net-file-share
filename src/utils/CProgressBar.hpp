@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 
 #include "../handshake/glob_consts.h"
 

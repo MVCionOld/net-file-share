@@ -17,6 +17,10 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
       std::max(static_cast<size_t>(1), threads_amt),
       static_cast<size_t>(MAX_THREADS_AMT)
   );
+  threads_amt_ = std::min(
+      threads_amt_,
+      file_size / (1024 * PACKAGE_SIZE)
+  );
   uint16_t port;
   makeHandshake(port);
   if (sockfd_ == FdTypeVal::ERROR_FD) {

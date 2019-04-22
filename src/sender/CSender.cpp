@@ -15,7 +15,7 @@ void CSender::Send (std::string file_path, size_t threads_amt) {
   auto source_map = map_file_r(source_fd, file_size);
   threads_amt_ = std::min(
       threads_amt,
-      file_size / (1024 * PACKAGE_SIZE)
+      static_cast<size_t>(file_size / (1024 * PACKAGE_SIZE))
   );
   threads_amt_ = std::max(
       static_cast<size_t>(1),

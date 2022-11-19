@@ -13,13 +13,8 @@
 
 extern "C" {
 #include "../handshake/glob_consts.h"
-#if defined(_WIN32) || defined(_WIN64)
-#include "win/ReceiverSocket.h"
-#include "../file_lib/win/FileLib.h"
-#else
 #include "linux/receiver_socket.h"
 #include "../file_lib/linux/file_lib.h"
-#endif
 };
 
 

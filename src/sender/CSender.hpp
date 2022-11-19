@@ -11,19 +11,13 @@
 #include <utility>
 #include <vector>
 
-
 #include "../handshake/handshake.hpp"
 #include "../utils/CProgressBar.hpp"
 
 extern "C" {
 #include "../handshake/glob_consts.h"
-#if defined(_WIN32) || defined(_WIN64)
-#include "win/SenderSocket.h"
-#include "../file_lib/win/FileLib.h"
-#else
 #include "linux/sender_socket.h"
 #include "../file_lib/linux/file_lib.h"
-#endif
 };
 
 
